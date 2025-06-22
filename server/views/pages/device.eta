@@ -1,0 +1,173 @@
+<% layout('./layouts/main') %>
+
+<div class="mdl-grid">
+    <!-- Device Header -->
+    <div class="mdl-cell mdl-cell--12-col">
+        <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">
+                    <span class="device-alias" data-device-id="<%= it.device.id %>"><%= it.device.alias %></span>
+                    <button class="mdl-button mdl-js-button mdl-button--icon" onclick="editDeviceName('<%= it.device.id %>')">
+                        <i class="material-icons">edit</i>
+                    </button>
+                </h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                <div class="mdl-grid">
+                    <div class="mdl-cell mdl-cell--6-col">
+                        <h5>Device Information</h5>
+                        <p><strong>Device ID:</strong> <%= it.device.id %></p>
+                        <p><strong>IP Address:</strong> <%= it.device.ipAddress %></p>
+                        <p><strong>MAC Address:</strong> <%= it.device.macAddress %></p>
+                        <p><strong>Mode:</strong> <%= it.device.mode %>
+                        <%
+                        const modes = {0: 'Servo', 1: 'Input Switch', 2: 'Thermometer', 3: 'Soil Sensor', 4: 'Relay', 5: 'RGB LED', 6: 'Latching Valve'};
+                        %>
+                        (<%= modes[it.device.mode] || 'Unknown' %>)</p>
+                    </div>
+                    <div class="mdl-cell mdl-cell--6-col">
+                        <h5>Status</h5>
+                        <p><strong>Online:</strong> 
+                            <span class="<%= it.device.isOnline ? 'device-online' : 'device-offline' %>">
+                                <i class="material-icons"><%= it.device.isOnline ? 'wifi' : 'wifi_off' %></i>
+                                <%= it.device.isOnline ? 'Yes' : 'No' %>
+                            </span>
+                        </p>
+                        <p><strong>Output State:</strong> 
+                            <span class="<%= it.device.currentOutput ? 'device-online' : 'device-offline' %>">
+                                <%= it.device.currentOutput ? 'ON' : 'OFF' %>
+                            </span>
+                        </p>
+                        <p><strong>Last Seen:</strong> <%= new Date(it.device.lastSeen).toLocaleString() %></p>
+                        <p><strong>Pending Commands:</strong> <%= it.device.pendingCommandCount || 0 %></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Controls -->
+    <div class="mdl-cell mdl-cell--6-col">
+        <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Device Control</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                <p>Control the device output state immediately or schedule for later.</p>
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+                <% if (it.device.mode === 6) { %>
+                    <!-- Latching Valve Controls -->
+                    <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored command-button"
+                            onclick="controlDevice('<%= it.device.id %>', 'valve-open')">
+                        <i class="material-icons">water_drop</i> Open Valve
+                    </button>
+                    <button class="mdl-button mdl-js-button mdl-button--raised command-button"
+                            onclick="controlDevice('<%= it.device.id %>', 'valve-close')">
+                        <i class="material-icons">block</i> Close Valve
+                    </button>
+                <% } else { %>
+                    <!-- Standard Controls for other modes -->
+                    <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored command-button"
+                            onclick="controlDevice('<%= it.device.id %>', 'output-on')">
+                        <i class="material-icons">power_settings_new</i> Turn On
+                    </button>
+                    <button class="mdl-button mdl-js-button mdl-button--raised command-button"
+                            onclick="controlDevice('<%= it.device.id %>', 'output-off')">
+                        <i class="material-icons">power_off</i> Turn Off
+                    </button>
+                    <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent command-button"
+                            onclick="controlDevice('<%= it.device.id %>', 'one-sec-on')">
+                        <i class="material-icons">flash_on</i> 1 Second Pulse
+                    </button>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scheduled Actions -->
+    <div class="mdl-cell mdl-cell--6-col">
+        <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Scheduled Actions</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                <p>Schedule actions to execute after a delay.</p>
+                <div class="mdl-textfield mdl-js-textfield">
+                    <input class="mdl-textfield__input" type="number" id="delay-minutes" min="1" max="1440" value="5">
+                    <label class="mdl-textfield__label" for="delay-minutes">Minutes from now</label>
+                </div>
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+                <% if (it.device.mode === 6) { %>
+                    <!-- Scheduled Valve Controls -->
+                    <button class="mdl-button mdl-js-button mdl-button--raised command-button"
+                            onclick="scheduleAction('<%= it.device.id %>', 'valve-open')">
+                        <i class="material-icons">schedule</i> Schedule Open
+                    </button>
+                    <button class="mdl-button mdl-js-button mdl-button--raised command-button"
+                            onclick="scheduleAction('<%= it.device.id %>', 'valve-close')">
+                        <i class="material-icons">schedule</i> Schedule Close
+                    </button>
+                <% } else { %>
+                    <!-- Standard Scheduled Controls -->
+                    <button class="mdl-button mdl-js-button mdl-button--raised command-button"
+                            onclick="scheduleAction('<%= it.device.id %>', 'output-on')">
+                        <i class="material-icons">schedule</i> Schedule On
+                    </button>
+                    <button class="mdl-button mdl-js-button mdl-button--raised command-button"
+                            onclick="scheduleAction('<%= it.device.id %>', 'output-off')">
+                        <i class="material-icons">schedule</i> Schedule Off
+                    </button>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact History -->
+    <div class="mdl-cell mdl-cell--12-col">
+        <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Contact History</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                <% if (it.device.contactHistory && it.device.contactHistory.length > 0) { %>
+                    <table class="mdl-data-table mdl-js-data-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th class="mdl-data-table__cell--non-numeric">Timestamp</th>
+                                <th class="mdl-data-table__cell--non-numeric">IP Address</th>
+                                <th class="mdl-data-table__cell--non-numeric">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% it.device.contactHistory.slice(-10).reverse().forEach(function(contact) { %>
+                                <tr>
+                                    <td class="mdl-data-table__cell--non-numeric">
+                                        <%= new Date(contact.timestamp).toLocaleString() %>
+                                    </td>
+                                    <td class="mdl-data-table__cell--non-numeric"><%= contact.ipAddress %></td>
+                                    <td class="mdl-data-table__cell--non-numeric"><%= contact.action %></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                <% } else { %>
+                    <p style="text-align: center; color: #999; padding: 20px;">
+                        No contact history available
+                    </p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function scheduleAction(deviceId, action) {
+    const delayMinutes = parseInt(document.getElementById('delay-minutes').value) || 5;
+    const delayMs = delayMinutes * 60 * 1000;
+    
+    controlDevice(deviceId, action, delayMs);
+    showNotification(`${action} scheduled for ${delayMinutes} minutes from now`);
+}
+</script>

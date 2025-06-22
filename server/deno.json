@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 80,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": false,
+    "proseWrap": "preserve"
+  },
+  "tasks": {
+    "start": "deno run --allow-net --allow-read --allow-write main.ts",
+    "dev": "deno run --allow-net --allow-read --allow-write --watch main.ts",
+    "test": "deno test --allow-net --allow-read --allow-write"
+  },
+  "imports": {
+    "oak": "https://deno.land/x/oak@v12.6.1/mod.ts",
+    "eta": "https://deno.land/x/eta@v3.1.0/src/index.ts",
+    "std/": "https://deno.land/std@0.208.0/"
+  }
+}

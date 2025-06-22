@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <style>
+        .form button {
+            margin: 15px;
+            height: 50px;
+            width: 100px;
+        }
+    </style>
+    <script>
+        function turnOn() {
+            let n = new XMLHttpRequest;
+            n.open("POST", "/output-on");
+            n.send();
+        }
+        
+        function turnOff() {
+            let n = new XMLHttpRequest;
+            n.open("POST", "/output-off");
+            n.send();
+        }
+        
+        function oneSecOn() {
+            turnOn();
+            setTimeout(() => turnOff(), 1000);
+        }
+        
+        window.turnOn = turnOn;
+        window.turnOff = turnOff;
+        window.oneSecOn = oneSecOn;
+    </script>
+</head>
+<body>
+    <div class="form">
+        <button onclick="turnOn()">On</button>
+        <button onclick="turnOff()">Off</button>
+        <button onclick="oneSecOn()">On 1 sec</button>
+        <!-- Valve-specific controls (shown when device is in valve mode) -->
+        <button onclick="openValve()" style="display:none;" id="openValveBtn">Open Valve</button>
+        <button onclick="closeValve()" style="display:none;" id="closeValveBtn">Close Valve</button>
+    </div>
+    
+    <script>
+        function openValve() {
+            let n = new XMLHttpRequest;
+            n.open("POST", "/output-on");
+            n.send();
+        }
+        
+        function closeValve() {
+            let n = new XMLHttpRequest;
+            n.open("POST", "/output-off");
+            n.send();
+        }
+        
+        // Check device mode and show appropriate controls
+        function checkDeviceMode() {
+            let xhr = new XMLHttpRequest;
+            xhr.addEventListener("load", function() {
+                try {
+                    let config = JSON.parse(this.responseText);
+                    if (config.mode === 6) { // Latching Valve mode
+                        // Hide standard controls
+                        document.querySelector('button[onclick="turnOn()"]').style.display = 'none';
+                        document.querySelector('button[onclick="turnOff()"]').style.display = 'none';
+                        document.querySelector('button[onclick="oneSecOn()"]').style.display = 'none';
+                        // Show valve controls
+                        document.getElementById('openValveBtn').style.display = 'inline-block';
+                        document.getElementById('closeValveBtn').style.display = 'inline-block';
+                    }
+                } catch (e) {
+                    console.log('Could not parse device config');
+                }
+            });
+            xhr.open("GET", "/currentConfig");
+            xhr.send();
+        }
+        
+        // Check mode when page loads
+        window.addEventListener('load', checkDeviceMode);
+        
+        window.openValve = openValve;
+        window.closeValve = closeValve;
+    </script>
+</body>
+</html>

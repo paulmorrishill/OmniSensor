@@ -1,0 +1,125 @@
+<% layout('./layouts/main') %>
+
+<div class="mdl-grid">
+    <!-- System Stats -->
+    <div class="mdl-cell mdl-cell--12-col">
+        <div class="system-stats">
+            <h4>System Overview</h4>
+            <div class="mdl-grid">
+                <div class="mdl-cell mdl-cell--3-col">
+                    <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+                        <div class="mdl-card__title">
+                            <h2 class="mdl-card__title-text"><%= it.systemHealth.devices.total %></h2>
+                        </div>
+                        <div class="mdl-card__supporting-text">
+                            Total Devices
+                        </div>
+                    </div>
+                </div>
+                <div class="mdl-cell mdl-cell--3-col">
+                    <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+                        <div class="mdl-card__title">
+                            <h2 class="mdl-card__title-text device-online"><%= it.systemHealth.devices.online %></h2>
+                        </div>
+                        <div class="mdl-card__supporting-text">
+                            Online Devices
+                        </div>
+                    </div>
+                </div>
+                <div class="mdl-cell mdl-cell--3-col">
+                    <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+                        <div class="mdl-card__title">
+                            <h2 class="mdl-card__title-text device-offline"><%= it.systemHealth.devices.offline %></h2>
+                        </div>
+                        <div class="mdl-card__supporting-text">
+                            Offline Devices
+                        </div>
+                    </div>
+                </div>
+                <div class="mdl-cell mdl-cell--3-col">
+                    <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+                        <div class="mdl-card__title">
+                            <h2 class="mdl-card__title-text"><%= it.systemHealth.commands.pending %></h2>
+                        </div>
+                        <div class="mdl-card__supporting-text">
+                            Pending Commands
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="mdl-cell mdl-cell--12-col">
+        <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Bulk Actions</h2>
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored command-button" 
+                        onclick="wakeAllDevices()">
+                    <i class="material-icons">power_settings_new</i> Wake All
+                </button>
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent command-button" 
+                        onclick="sleepAllDevices()">
+                    <i class="material-icons">power_off</i> Sleep All
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Grid -->
+    <% it.devices.forEach(function(device) { %>
+        <div class="mdl-cell mdl-cell--4-col">
+            <%~ include('./partials/device-card', { device: device }) %>
+        </div>
+    <% }) %>
+
+    <% if (it.devices.length === 0) { %>
+        <div class="mdl-cell mdl-cell--12-col">
+            <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+                <div class="mdl-card__supporting-text" style="text-align: center; padding: 40px;">
+                    <i class="material-icons" style="font-size: 48px; color: #ccc;">devices_other</i>
+                    <h4>No devices registered</h4>
+                    <p>Devices will appear here once they register with the server.</p>
+                </div>
+            </div>
+        </div>
+    <% } %>
+</div>
+
+<script>
+// Dashboard-specific JavaScript
+function wakeAllDevices() {
+    fetch('/api/devices/wake-all', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(`Waking ${data.data.count} devices`);
+            } else {
+                showNotification('Failed to wake devices', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Failed to wake devices', 'error');
+        });
+}
+
+function sleepAllDevices() {
+    fetch('/api/devices/sleep-all', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(`Sleeping ${data.data.count} devices`);
+            } else {
+                showNotification('Failed to sleep devices', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Failed to sleep devices', 'error');
+        });
+}
+</script>

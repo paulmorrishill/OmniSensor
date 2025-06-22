@@ -1,0 +1,254 @@
+/* Custom styles for WiFi Device Manager */
+
+/* Connection status indicator */
+#connection-status {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#connection-status::before {
+    content: '●';
+    margin-right: 4px;
+    font-size: 8px;
+}
+
+/* Device status colors */
+.device-online {
+    color: #4CAF50 !important;
+}
+
+.device-offline {
+    color: #F44336 !important;
+}
+
+/* Device cards */
+.device-card {
+    transition: box-shadow 0.3s ease;
+}
+
+.device-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+}
+
+.device-alias {
+    cursor: pointer;
+    border-bottom: 1px dashed transparent;
+    transition: border-color 0.2s ease;
+}
+
+.device-alias:hover {
+    border-bottom-color: #2196F3;
+}
+
+/* Command buttons */
+.command-button {
+    margin: 4px !important;
+    min-width: 80px;
+}
+
+.command-button .material-icons {
+    margin-right: 4px;
+    font-size: 18px;
+    vertical-align: middle;
+}
+
+/* System stats cards */
+.system-stats .mdl-card {
+    text-align: center;
+}
+
+.system-stats .mdl-card__title {
+    justify-content: center;
+    padding-bottom: 8px;
+}
+
+.system-stats .mdl-card__title-text {
+    font-size: 2.5em;
+    font-weight: 300;
+    margin: 0;
+}
+
+.system-stats .mdl-card__supporting-text {
+    color: #666;
+    font-size: 14px;
+    padding-top: 0;
+}
+
+/* Device mode badges */
+.device-mode {
+    background: #2196F3;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    display: inline-block;
+    margin: 4px 0;
+}
+
+/* Last seen timestamp */
+.last-seen {
+    font-size: 12px;
+    color: #666;
+    margin-top: 8px;
+}
+
+/* Pending commands indicator */
+.pending-commands {
+    color: #FF9800;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+.pending-commands .material-icons {
+    font-size: 16px;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #2196F3;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .device-card {
+        margin: 8px;
+    }
+    
+    .command-button {
+        min-width: 60px;
+        font-size: 12px;
+    }
+    
+    .command-button .material-icons {
+        font-size: 16px;
+    }
+    
+    .system-stats .mdl-card__title-text {
+        font-size: 2em;
+    }
+}
+
+/* Notification animations */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.notification {
+    animation: slideInRight 0.3s ease-out;
+}
+
+.notification.removing {
+    animation: slideOutRight 0.3s ease-in;
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
+
+.empty-state .material-icons {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+/* Utility classes */
+.text-center {
+    text-align: center;
+}
+
+.text-muted {
+    color: #666;
+}
+
+.mb-16 {
+    margin-bottom: 16px;
+}
+
+.mt-16 {
+    margin-top: 16px;
+}
+
+.p-16 {
+    padding: 16px;
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+    .system-stats {
+        background: #333;
+        color: #fff;
+    }
+    
+    .last-seen,
+    .text-muted {
+        color: #ccc;
+    }
+}
+
+/* Focus styles for accessibility */
+.device-alias:focus,
+.command-button:focus {
+    outline: 2px solid #2196F3;
+    outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+    .mdl-layout__drawer,
+    .mdl-layout__header,
+    .command-button {
+        display: none !important;
+    }
+    
+    .device-card {
+        break-inside: avoid;
+        margin-bottom: 16px;
+    }
+}

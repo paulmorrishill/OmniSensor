@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+</head>
+<body>
+    <div class="form">
+        SSID: <select id="ssid"></select><br>
+        Password: <input type="text" id="password" placeholder="Password"><br>
+        Alias: <input type="text" id="alias" placeholder="Alias"><br>
+        Server: <input type="text" id="server" placeholder="Server"><br>
+        MODE: <select id="mode">
+            <option value="0">Servo</option>
+            <option value="1">Input switch</option>
+            <option value="2">Thermometer</option>
+            <option value="3">Soil sensor</option>
+            <option value="4">Relay</option>
+            <option value="5">RGB LED</option>
+            <option value="6">Latching Valve</option>
+        </select><br>
+        <button type="button" class="md-button md-button-raised" onclick="submit()">Submit</button>
+        <a href="/color">Pick colors</a>
+    </div>
+    <script>
+        const fields = ["ssid", "alias", "server", "password", "mode"];
+        
+        function submit() {
+            let e = new XMLHttpRequest;
+            e.addEventListener("load", function() {
+                console.log(this.responseText);
+            });
+            e.open("POST", "/configure");
+            e.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            let n = "";
+            for (var t of fields) {
+                var o = document.getElementById(t).value;
+                n += `${t}=${encodeURIComponent(o)}&`;
+            }
+            e.send(n);
+        }
+        
+        function loadWifi() {
+            var e = new XMLHttpRequest;
+            e.addEventListener("load", function() {
+                var e = JSON.parse(this.responseText);
+                var n = e.networks;
+                const t = document.getElementById("ssid");
+                for (var o, s = 0; s < n.length; s++) {
+                    var d = n[s];
+                    var i = document.createElement("option");
+                    i.value = d.ssid;
+                    i.innerHTML = d.ssid + " " + d.encryption + " (" + d.rssi + ")";
+                    t.appendChild(i);
+                }
+                for (o of fields) {
+                    var r = e[o];
+                    const a = document.getElementById(o);
+                    a.value = r;
+                }
+            });
+            e.open("GET", "/currentConfig");
+            e.send();
+        }
+        
+        loadWifi();
+    </script>
+</body>
+</html>

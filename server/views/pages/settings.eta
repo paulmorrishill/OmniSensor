@@ -1,0 +1,273 @@
+<% layout('./layouts/main') %>
+
+<div class="mdl-grid">
+    <!-- System Information -->
+    <div class="mdl-cell mdl-cell--6-col">
+        <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">System Information</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                <table class="mdl-data-table mdl-js-data-table" style="width: 100%;">
+                    <tbody>
+                        <tr>
+                            <td class="mdl-data-table__cell--non-numeric"><strong>Server Uptime</strong></td>
+                            <td class="mdl-data-table__cell--non-numeric">
+                                <span id="uptime-display"><%= Math.floor(it.systemHealth.uptime / 1000 / 60) %> minutes</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="mdl-data-table__cell--non-numeric"><strong>Total Devices</strong></td>
+                            <td class="mdl-data-table__cell--non-numeric"><%= it.systemHealth.devices.total %></td>
+                        </tr>
+                        <tr>
+                            <td class="mdl-data-table__cell--non-numeric"><strong>Online Devices</strong></td>
+                            <td class="mdl-data-table__cell--non-numeric">
+                                <span class="device-online"><%= it.systemHealth.devices.online %></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="mdl-data-table__cell--non-numeric"><strong>Offline Devices</strong></td>
+                            <td class="mdl-data-table__cell--non-numeric">
+                                <span class="device-offline"><%= it.systemHealth.devices.offline %></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="mdl-data-table__cell--non-numeric"><strong>Last Update</strong></td>
+                            <td class="mdl-data-table__cell--non-numeric">
+                                <%= new Date(it.systemHealth.lastUpdate).toLocaleString() %>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Command Queue Status -->
+    <div class="mdl-cell mdl-cell--6-col">
+        <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Command Queue</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                <table class="mdl-data-table mdl-js-data-table" style="width: 100%;">
+                    <tbody>
+                        <tr>
+                            <td class="mdl-data-table__cell--non-numeric"><strong>Pending</strong></td>
+                            <td class="mdl-data-table__cell--non-numeric">
+                                <span style="color: #FF9800;"><%= it.systemHealth.commands.pending %></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="mdl-data-table__cell--non-numeric"><strong>Executing</strong></td>
+                            <td class="mdl-data-table__cell--non-numeric">
+                                <span style="color: #2196F3;"><%= it.systemHealth.commands.executing %></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="mdl-data-table__cell--non-numeric"><strong>Completed</strong></td>
+                            <td class="mdl-data-table__cell--non-numeric">
+                                <span class="device-online"><%= it.systemHealth.commands.completed %></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="mdl-data-table__cell--non-numeric"><strong>Failed</strong></td>
+                            <td class="mdl-data-table__cell--non-numeric">
+                                <span class="device-offline"><%= it.systemHealth.commands.failed %></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="mdl-data-table__cell--non-numeric"><strong>Total</strong></td>
+                            <td class="mdl-data-table__cell--non-numeric"><%= it.systemHealth.commands.total %></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- WebSocket Status -->
+    <div class="mdl-cell mdl-cell--12-col">
+        <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Real-time Connection</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                <div class="mdl-grid">
+                    <div class="mdl-cell mdl-cell--6-col">
+                        <p><strong>WebSocket Status:</strong> 
+                            <span id="ws-status" class="device-online">Connected</span>
+                        </p>
+                        <p><strong>Connection URL:</strong> 
+                            <code id="ws-url">ws://<%= Deno?.env?.get?.('HOST') || 'localhost' %>:<%= Deno?.env?.get?.('PORT') || '8000' %>/ws</code>
+                        </p>
+                        <p><strong>Last Message:</strong> 
+                            <span id="last-message-time">-</span>
+                        </p>
+                    </div>
+                    <div class="mdl-cell mdl-cell--6-col">
+                        <button class="mdl-button mdl-js-button mdl-button--raised" onclick="testWebSocket()">
+                            <i class="material-icons">refresh</i> Test Connection
+                        </button>
+                        <button class="mdl-button mdl-js-button mdl-button--raised" onclick="requestFullState()">
+                            <i class="material-icons">sync</i> Request State
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Endpoints -->
+    <div class="mdl-cell mdl-cell--12-col">
+        <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">API Endpoints</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                <h5>Device Communication</h5>
+                <ul>
+                    <li><code>POST /register</code> - Device registration</li>
+                    <li><code>GET /should-remain-awake?id={deviceId}</code> - Sleep/wake control</li>
+                    <li><code>POST /wifi-failures</code> - WiFi failure reporting</li>
+                </ul>
+                
+                <h5>Web API</h5>
+                <ul>
+                    <li><code>GET /api/devices</code> - Get all devices</li>
+                    <li><code>GET /api/devices/{id}</code> - Get specific device</li>
+                    <li><code>POST /api/devices/{id}/control</code> - Control device</li>
+                    <li><code>POST /api/devices/{id}/rename</code> - Rename device</li>
+                    <li><code>GET /api/health</code> - System health</li>
+                </ul>
+                
+                <h5>WebSocket</h5>
+                <ul>
+                    <li><code>ws://host:port/ws</code> - Real-time updates</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Actions -->
+    <div class="mdl-cell mdl-cell--12-col">
+        <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">System Actions</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                <p>Administrative actions for system maintenance.</p>
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+                <button class="mdl-button mdl-js-button mdl-button--raised" onclick="refreshSystemHealth()">
+                    <i class="material-icons">refresh</i> Refresh Status
+                </button>
+                <button class="mdl-button mdl-js-button mdl-button--raised" onclick="exportSystemData()">
+                    <i class="material-icons">download</i> Export Data
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Update WebSocket status display
+if (window.wsManager) {
+    window.wsManager.addListener((type, data) => {
+        if (type === 'state-update') {
+            document.getElementById('last-message-time').textContent = new Date().toLocaleTimeString();
+        }
+    });
+}
+
+function testWebSocket() {
+    if (window.wsManager) {
+        window.wsManager.ping();
+        showNotification('WebSocket ping sent');
+    } else {
+        showNotification('WebSocket not available', 'error');
+    }
+}
+
+function requestFullState() {
+    if (window.wsManager) {
+        window.wsManager.requestState();
+        showNotification('State refresh requested');
+    } else {
+        showNotification('WebSocket not available', 'error');
+    }
+}
+
+function refreshSystemHealth() {
+    fetch('/api/health')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('System health refreshed');
+                // Update the page with new data
+                location.reload();
+            } else {
+                showNotification('Failed to refresh system health', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Failed to refresh system health', 'error');
+        });
+}
+
+function exportSystemData() {
+    fetch('/api/devices')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const exportData = {
+                    timestamp: new Date().toISOString(),
+                    devices: data.data,
+                    systemHealth: <%= JSON.stringify(it.systemHealth) %>
+                };
+                
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `wifi-devices-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showNotification('System data exported');
+            } else {
+                showNotification('Failed to export data', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Failed to export data', 'error');
+        });
+}
+
+// Update uptime display every minute
+setInterval(() => {
+    const uptimeElement = document.getElementById('uptime-display');
+    if (uptimeElement) {
+        const currentUptime = <%= it.systemHealth.uptime %> + (Date.now() - <%= Date.now() %>);
+        const minutes = Math.floor(currentUptime / 1000 / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        
+        let uptimeText = '';
+        if (days > 0) {
+            uptimeText = `${days}d ${hours % 24}h ${minutes % 60}m`;
+        } else if (hours > 0) {
+            uptimeText = `${hours}h ${minutes % 60}m`;
+        } else {
+            uptimeText = `${minutes}m`;
+        }
+        
+        uptimeElement.textContent = uptimeText;
+    }
+}, 60000);
+</script>
