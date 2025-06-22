@@ -25,7 +25,13 @@
       "left": 297.6,
       "attrs": { "value": "1000" }
     },
-    { "type": "wokwi-resistor", "id": "r4", "top": 200, "left": 50, "attrs": { "value": "1000" } },
+    {
+      "type": "wokwi-resistor",
+      "id": "r4",
+      "top": 200.0,
+      "left": 50.0,
+      "attrs": { "value": "1000" }
+    },
     {
       "type": "wokwi-led",
       "id": "led_green",
@@ -50,16 +56,15 @@
     {
       "type": "wokwi-led",
       "id": "led_sensor_power",
-      "top": 250,
-      "left": 100,
+      "top": 250.0,
+      "left": 100.0,
       "attrs": { "color": "yellow" }
     },
     {
       "type": "wokwi-pushbutton",
       "id": "btn1",
-      "top": 393.5,
-      "left": 70.7,
-      "rotate": 90,
+      "top": 300.0,
+      "left": 200.0,
       "attrs": { "color": "red" }
     }
   ],

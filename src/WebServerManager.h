@@ -18,6 +18,12 @@ private:
     SensorManager* sensorManager;
     DeviceManager* deviceManager;
     
+#ifdef ESP32_PLATFORM
+    // uSSDP-ESP32 specific objects
+    uDevice* ssdpDevice;
+    uSSDP* ssdpServer;
+#endif
+    
     // HTML content constants are now in html_constants.h
 
 public:

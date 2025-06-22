@@ -47,12 +47,18 @@ void setup() {
     eepromManager = new EEPROMManager();
     eepromManager->init();
     
+    // Auto-configure for Wokwi emulator if needed
+    if (PlatformUtils::isWokwiEmulator() && !eepromManager->hasWiFiCredentials()) {
+        Serial.println("Wokwi emulator detected - auto-configuring with Wokwi-GUEST credentials");
+        eepromManager->saveWiFiCredentials("Wokwi-GUEST", "");
+    }
+    
     // Initialize WiFi first (required for MAC address access)
     WiFi.mode(WIFI_STA);
     
     wifiManager = new WiFiManager();
     sensorManager = new SensorManager(oneWireBus, SENSE_POWER_PIN);
-    deviceManager = new DeviceManager(eepromManager, sensorManager);
+    deviceManager = new DeviceManager(eepromManager, sensorManager, wifiManager);
     webServerManager = new WebServerManager(eepromManager, wifiManager, sensorManager, deviceManager);
     
     // Initialize device and pins
@@ -81,8 +87,13 @@ void setup() {
     // Setup SSDP
     webServerManager->setupSSDP(deviceManager->getSerialNumber(), deviceManager->getDeviceId());
     
-    // Connect to WiFi
-    connectToWiFi();
+    // Handle configuration mode - this will enter config mode if needed
+    deviceManager->handleConfigurationMode();
+    
+    // Try to connect to WiFi if credentials are available (even if server URL isn't set yet)
+    if (eepromManager->hasWiFiCredentials() && !wifiManager->isInConfigMode()) {
+        connectToWiFi();
+    }
     
     // If WiFi is connected, send failure log and register with server
     if (WiFi.status() == WL_CONNECTED) {
@@ -92,15 +103,6 @@ void setup() {
 }
 
 void connectToWiFi() {
-    if (!eepromManager->hasWiFiCredentials()) {
-        Serial.println("Wifi creds not stored entering wifi config mode.");
-        eepromManager->clearAll();
-        wifiManager->enableHotspotMode();
-        digitalWrite(GREEN_PIN, HIGH);
-        deviceManager->setStayAwake(true);
-        return;
-    }
-    
     String ssid = eepromManager->getSSID();
     String password = eepromManager->getPassword();
     

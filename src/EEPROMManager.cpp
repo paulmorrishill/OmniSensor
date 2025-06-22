@@ -70,6 +70,11 @@ void EEPROMManager::setServerUrl(String server) {
     writeString(server, EEPROM_SERVER_POSITION);
 }
 
+bool EEPROMManager::hasServerUrl() {
+    String serverUrl = getServerUrl();
+    return serverUrl.length() > 0 && serverUrl != "";
+}
+
 void EEPROMManager::addWiFiFailure(unsigned long timestamp) {
     String currentLog = getWiFiFailureLog();
     
@@ -111,6 +116,10 @@ void EEPROMManager::clearAll() {
     writeString("", EEPROM_SSID_POSITION);
     writeString("", EEPROM_PASSWORD_POSITION);
     writeString("", EEPROM_FAILURE_LOG_POSITION);
+    
+    // Clear the WiFi credentials flag so hasWiFiCredentials() returns false
+    EEPROM.write(HAS_SET_SSID_EEPROM_POSITION, 0);
+    
     EEPROM.commit();
 }
 
@@ -134,14 +143,21 @@ String EEPROMManager::readString(int position) {
     Serial.print(position);
     String output = "";
     int actualLength = EEPROM.read(position);
+    
+    // Check if length is valid (not uninitialized EEPROM)
+    if (actualLength == 255 || actualLength < 0) {
+        Serial.println(" with invalid length (uninitialized): \"\"");
+        return "";
+    }
+    
     Serial.print(" with length ");
     Serial.print(actualLength);
-    Serial.print(": ");
-    for (int i = position; i < position + actualLength; ++i) {
-        char theChar = char(EEPROM.read(i + 1));
+    Serial.print(": \"");
+    for (int i = 0; i < actualLength; ++i) {
+        char theChar = char(EEPROM.read(position + 1 + i));
         Serial.print(theChar);
         output += theChar;
     }
-    Serial.println();
+    Serial.println("\"");
     return output;
 }

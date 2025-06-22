@@ -1,0 +1,246 @@
+<% layout("../layouts/main") %>
+
+<div class="mdl-grid">
+    <div class="mdl-cell mdl-cell--12-col">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h3>Device Discovery</h3>
+            <div>
+                <button id="scanBtn" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
+                    <i class="material-icons">search</i> Scan Network
+                </button>
+                <button id="refreshBtn" class="mdl-button mdl-js-button mdl-button--raised">
+                    <i class="material-icons">refresh</i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Discovery Stats -->
+        <div class="mdl-grid">
+            <div class="mdl-cell mdl-cell--3-col">
+                <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+                    <div class="mdl-card__title">
+                        <h2 class="mdl-card__title-text">📱 Total Devices</h2>
+                    </div>
+                    <div class="mdl-card__supporting-text">
+                        <span id="totalDevices" style="font-size: 24px; font-weight: bold;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mdl-cell mdl-cell--3-col">
+                <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+                    <div class="mdl-card__title">
+                        <h2 class="mdl-card__title-text">✅ Configured</h2>
+                    </div>
+                    <div class="mdl-card__supporting-text">
+                        <span id="configuredDevices" style="font-size: 24px; font-weight: bold; color: #4CAF50;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mdl-cell mdl-cell--3-col">
+                <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+                    <div class="mdl-card__title">
+                        <h2 class="mdl-card__title-text">⚠️ Unconfigured</h2>
+                    </div>
+                    <div class="mdl-card__supporting-text">
+                        <span id="unconfiguredDevices" style="font-size: 24px; font-weight: bold; color: #FF9800;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mdl-cell mdl-cell--3-col">
+                <div class="mdl-card mdl-shadow--2dp" style="width: 100%;">
+                    <div class="mdl-card__title">
+                        <h2 class="mdl-card__title-text">🕐 Last Scan</h2>
+                    </div>
+                    <div class="mdl-card__supporting-text">
+                        <span id="lastScan" style="font-size: 16px; font-weight: bold;">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Devices List -->
+        <div class="mdl-card mdl-shadow--2dp" style="width: 100%; margin-top: 24px;">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Discovered Devices</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                <p>Devices found on the network via SSDP discovery</p>
+                <div id="devicesList">
+                    <!-- Devices will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let devices = [];
+
+async function loadStats() {
+    try {
+        const response = await fetch('/api/discovery/stats');
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById('totalDevices').textContent = data.stats.totalDevices;
+            document.getElementById('configuredDevices').textContent = data.stats.configuredDevices;
+            document.getElementById('unconfiguredDevices').textContent = data.stats.unconfiguredDevices;
+            
+            if (data.stats.lastScanTime) {
+                const lastScan = new Date(data.stats.lastScanTime);
+                document.getElementById('lastScan').textContent = lastScan.toLocaleTimeString();
+            } else {
+                document.getElementById('lastScan').textContent = 'Never';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading stats:', error);
+    }
+}
+
+async function loadDevices() {
+    try {
+        const response = await fetch('/api/discovery/devices');
+        const data = await response.json();
+        
+        if (data.success) {
+            devices = data.devices;
+            renderDevices();
+        }
+    } catch (error) {
+        console.error('Error loading devices:', error);
+    }
+}
+
+function renderDevices() {
+    const devicesList = document.getElementById('devicesList');
+    
+    if (devices.length === 0) {
+        devicesList.innerHTML = `
+            <div style="text-align: center; padding: 24px; color: #666;">
+                No devices discovered yet. Click "Scan Network" to search for devices.
+            </div>
+        `;
+        return;
+    }
+    
+    devicesList.innerHTML = devices.map(device => `
+        <div class="mdl-card mdl-shadow--2dp" style="width: 100%; margin-bottom: 16px;">
+            <div class="mdl-card__supporting-text">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center;">
+                        <div style="margin-right: 16px;">
+                            <span style="font-size: 24px;">${device.isConfigured ? '✅' : '⚠️'}</span>
+                        </div>
+                        <div>
+                            <div style="font-weight: bold; margin-bottom: 4px;">${device.hostname || 'Unknown Device'}</div>
+                            <div style="color: #666; font-size: 14px;">
+                                IP: ${device.ip} |
+                                ${device.deviceId ? `ID: ${device.deviceId} | ` : ''}
+                                Last seen: ${formatTimeSince(device.timeSinceLastSeen)}
+                            </div>
+                            ${device.serialNumber ? `<div style="color: #999; font-size: 12px;">Serial: ${device.serialNumber}</div>` : ''}
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="mdl-chip">
+                            <span class="mdl-chip__text" style="color: ${device.isConfigured ? '#4CAF50' : '#FF9800'};">
+                                ${device.isConfigured ? 'Configured' : 'Needs Configuration'}
+                            </span>
+                        </span>
+                        ${!device.isConfigured ? `
+                            <button onclick="configureDevice('${device.ip}')"
+                                    class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
+                                Configure
+                            </button>
+                        ` : ''}
+                        <a href="http://${device.ip}" target="_blank"
+                           class="mdl-button mdl-js-button mdl-button--raised">
+                            Open Device
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    // Re-initialize MDL components for new buttons
+    if (typeof componentHandler !== 'undefined') {
+        componentHandler.upgradeDom();
+    }
+}
+
+function formatTimeSince(ms) {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return `${seconds}s ago`;
+}
+
+async function scanNetwork() {
+    const scanBtn = document.getElementById('scanBtn');
+    const originalText = scanBtn.textContent;
+    
+    scanBtn.textContent = '🔍 Scanning...';
+    scanBtn.disabled = true;
+    
+    try {
+        const response = await fetch('/api/discovery/scan', { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            // Wait a moment for the scan to complete, then refresh
+            setTimeout(() => {
+                loadDevices();
+                loadStats();
+            }, 2000);
+        }
+    } catch (error) {
+        console.error('Error scanning network:', error);
+    } finally {
+        scanBtn.textContent = originalText;
+        scanBtn.disabled = false;
+    }
+}
+
+async function configureDevice(ip) {
+    try {
+        const response = await fetch(`/api/discovery/configure/${ip}`, { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`Device at ${ip} configured successfully!`);
+            loadDevices();
+            loadStats();
+        } else {
+            alert(`Failed to configure device: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error configuring device:', error);
+        alert('Error configuring device');
+    }
+}
+
+// Event listeners
+document.getElementById('scanBtn').addEventListener('click', scanNetwork);
+document.getElementById('refreshBtn').addEventListener('click', () => {
+    loadDevices();
+    loadStats();
+});
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    loadDevices();
+    loadStats();
+}, 30000);
+
+// Initial load
+loadDevices();
+loadStats();
+</script>

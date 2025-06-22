@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
     "allowJs": true,
-    "lib": ["deno.window"],
-    "strict": true
+    "lib": ["deno.window", "deno.unstable"],
+    "strict": true,
+    "types": ["./src/types/oak.d.ts"]
   },
   "lint": {
     "rules": {
@@ -18,9 +19,9 @@
     "proseWrap": "preserve"
   },
   "tasks": {
-    "start": "deno run --allow-net --allow-read --allow-write main.ts",
-    "dev": "deno run --allow-net --allow-read --allow-write --watch main.ts",
-    "test": "deno test --allow-net --allow-read --allow-write"
+    "start": "deno run --check --unstable-net --allow-net --allow-read --allow-write --allow-env main.ts",
+    "dev": "deno run --check --unstable-net --allow-net --allow-read --allow-write --allow-env --watch main.ts",
+    "test": "deno test --check --unstable-net --allow-net --allow-read --allow-write --allow-env"
   },
   "imports": {
     "oak": "https://deno.land/x/oak@v12.6.1/mod.ts",

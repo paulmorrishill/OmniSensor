@@ -6,6 +6,7 @@
 // Forward declarations
 class EEPROMManager;
 class SensorManager;
+class WiFiManager;
 
 
 class DeviceManager {
@@ -28,6 +29,7 @@ private:
     
     EEPROMManager* eepromManager;
     SensorManager* sensorManager;
+    WiFiManager* wifiManager;
     HTTPClient httpClient;
     
     int deviceId;
@@ -38,7 +40,7 @@ private:
     unsigned long timeAtLastCheck;
 
 public:
-    DeviceManager(EEPROMManager* eeprom, SensorManager* sensor);
+    DeviceManager(EEPROMManager* eeprom, SensorManager* sensor, WiFiManager* wifi);
     ~DeviceManager();
     
     void init();
@@ -48,6 +50,7 @@ public:
     void handleButtonPress();
     void clearConfiguration();
     void printDebugInfo();
+    bool handleConfigurationMode();
     
     // Power management
     bool shouldStayAwake() const { return stayAwake; }

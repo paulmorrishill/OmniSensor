@@ -21,6 +21,7 @@ public:
     void enableHotspotMode();
     void disableAP();
     bool connectUsingSavedCredentials(String ssid, String password);
+    bool connectToWokwiGuest();
     void scanNetworks(JsonArray& networksArray);
     String getEncryptionName(byte type);
     bool isInConfigMode() const { return configMode; }

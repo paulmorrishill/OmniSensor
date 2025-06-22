@@ -1,6 +1,7 @@
 #include "DeviceManager.h"
 #include "EEPROMManager.h"
 #include "SensorManager.h"
+#include "WiFiManager.h"
 #include <WiFiClient.h>
 
 #ifdef ESP8266_PLATFORM
@@ -19,8 +20,8 @@ void tcpCleanup() {
 }
 #endif
 
-DeviceManager::DeviceManager(EEPROMManager* eeprom, SensorManager* sensor) :
-    eepromManager(eeprom), sensorManager(sensor), deviceId(0), operatingMode(0),
+DeviceManager::DeviceManager(EEPROMManager* eeprom, SensorManager* sensor, WiFiManager* wifi) :
+    eepromManager(eeprom), sensorManager(sensor), wifiManager(wifi), deviceId(0), operatingMode(0),
     stayAwake(false), timeAtLastSend(0), timeAtLastCheck(0) {
 }
 
@@ -94,6 +95,73 @@ void DeviceManager::handleButtonPress() {
 
 void DeviceManager::clearConfiguration() {
     eepromManager->clearAll();
+}
+
+bool DeviceManager::handleConfigurationMode() {
+    bool wifiConfigured = eepromManager->hasWiFiCredentials();
+    bool serverUrlConfigured = eepromManager->hasServerUrl();
+    bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+    bool inConfigMode = wifiManager->isInConfigMode();
+    
+    // If WiFi credentials are not configured, must stay in config mode
+    if (!wifiConfigured) {
+        static unsigned long lastConfigMessage = 0;
+        if (millis() - lastConfigMessage > 30000) {
+            Serial.println("WiFi credentials not configured - staying in config mode");
+            lastConfigMessage = millis();
+        }
+        
+        // Enter config mode if not already in it
+        if (!inConfigMode) {
+            Serial.println("Entering config mode");
+            wifiManager->enableHotspotMode();
+            digitalWrite(GREEN_PIN, HIGH);
+        }
+        
+        setStayAwake(true);
+        return true; // Stay awake for configuration
+    }
+    
+    // WiFi is configured - check if server URL is also configured
+    if (!serverUrlConfigured) {
+        static unsigned long lastConfigMessage = 0;
+        if (millis() - lastConfigMessage > 30000) {
+            Serial.println("Server URL not configured - staying in config mode");
+            lastConfigMessage = millis();
+        }
+        
+        // Enter config mode if not already in it (but allow WiFi to connect normally)
+        if (!inConfigMode) {
+            Serial.println("Entering config mode for server URL configuration");
+            wifiManager->setConfigMode(true);  // Set config mode but don't enable AP
+            digitalWrite(GREEN_PIN, HIGH);
+        }
+        
+        setStayAwake(true);
+        return true; // Stay awake for configuration
+    }
+    
+    // Both WiFi and server URL are configured - exit config mode if connected
+    if (inConfigMode && wifiConnected) {
+        Serial.println("Configuration complete - exiting config mode");
+        wifiManager->setConfigMode(false);
+        wifiManager->disableAP();
+        digitalWrite(GREEN_PIN, LOW); // Turn off config mode indicator
+        return false; // Can proceed with normal operation
+    }
+    
+    // If still in config mode (waiting for WiFi connection), stay awake
+    if (inConfigMode) {
+        static unsigned long lastConfigMessage = 0;
+        if (millis() - lastConfigMessage > 30000) {
+            Serial.println("Device in config mode - staying awake");
+            lastConfigMessage = millis();
+        }
+        setStayAwake(true);
+        return true; // Stay awake
+    }
+    
+    return false; // Normal operation can proceed
 }
 
 void DeviceManager::printDebugInfo() {
@@ -254,16 +322,26 @@ void DeviceManager::reportNow() {
 }
 
 void DeviceManager::loop() {
+    // Handle configuration mode - returns true if device should stay awake for config
+    if (handleConfigurationMode()) {
+        return; // Early return - don't do any server communication or sleep logic
+    }
+    
+    // Configuration is complete and device is not in config mode - proceed with normal operation
+    bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+    
     if (stayAwake) {
         if (millis() - timeAtLastSend > 30 * 1000) {
             reportNow();
         }
-        if (millis() - timeAtLastCheck > 30 * 1000) {
+        // Only ask server if WiFi is connected
+        if (wifiConnected && millis() - timeAtLastCheck > 30 * 1000) {
             askServerIfShouldStayUp();
         }
     }
 
-    if (!stayAwake) {
+    // Only check with server if WiFi is connected
+    if (!stayAwake && wifiConnected) {
         askServerIfShouldStayUp();
     }
 

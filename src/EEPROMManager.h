@@ -39,6 +39,7 @@ public:
     void setAlias(String alias);
     String getServerUrl();
     void setServerUrl(String server);
+    bool hasServerUrl();
     
     // WiFi Failure Log
     void addWiFiFailure(unsigned long timestamp);

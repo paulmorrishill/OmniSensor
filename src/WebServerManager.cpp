@@ -9,9 +9,18 @@ WebServerManager::WebServerManager(EEPROMManager* eeprom, WiFiManager* wifi, Sen
     eepromManager(eeprom), wifiManager(wifi), sensorManager(sensor), deviceManager(device) {
     server = new WebServerType(80);
     httpUpdater = new HTTPUpdateServerType();
+    
+#ifdef ESP32_PLATFORM
+    ssdpDevice = new uDevice();
+    ssdpServer = new uSSDP();
+#endif
 }
 
 WebServerManager::~WebServerManager() {
+#ifdef ESP32_PLATFORM
+    delete ssdpServer;
+    delete ssdpDevice;
+#endif
     delete httpUpdater;
     delete server;
 }
@@ -37,6 +46,12 @@ void WebServerManager::init() {
 
 void WebServerManager::handleClient() {
     server->handleClient();
+#ifdef ESP32_PLATFORM
+    // Process SSDP for ESP32
+    if (ssdpServer) {
+        ssdpServer->process();
+    }
+#endif
 }
 
 void WebServerManager::setupSSDP(String serialNumber, int deviceId) {
@@ -57,9 +72,36 @@ void WebServerManager::setupSSDP(String serialNumber, int deviceId) {
     SSDP.setDeviceType("upnp:rootdevice");
     SSDP.begin();
 #elif defined(ESP32_PLATFORM)
-    // ESP32 SSDP setup - may need different implementation or library
-    Serial.println("SSDP not yet implemented for ESP32");
-    // TODO: Implement ESP32 SSDP when library is available
+    // ESP32 SSDP setup using uSSDP-ESP32 library
+    byte mac[6];
+    char base[64];
+    WiFi.macAddress(mac);
+    sprintf(base, "esp32-%02x%02x-%02x%02x-%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    
+    ssdpDevice->begin((const char*)base, mac);
+    
+    // Create mutable copies for the uSSDP library
+    char serialNumberBuf[64];
+    char manufacturerBuf[32] = "Paul Morris-Hill";
+    char manufacturerURLBuf[64] = "http://paulmh.co.uk";
+    char modelNameBuf[32] = "WiFi Omni V1";
+    char presentationURLBuf[8] = "/";
+    
+    serialNumber.toCharArray(serialNumberBuf, sizeof(serialNumberBuf));
+    String name = "WiFi Omni " + String(deviceId);
+    char friendlyNameBuf[64];
+    name.toCharArray(friendlyNameBuf, sizeof(friendlyNameBuf));
+    
+    ssdpDevice->serialNumber(serialNumberBuf);
+    ssdpDevice->manufacturer(manufacturerBuf);
+    ssdpDevice->manufacturerURL(manufacturerURLBuf);
+    ssdpDevice->friendlyName(friendlyNameBuf);
+    ssdpDevice->modelName(modelNameBuf);
+    ssdpDevice->modelNumber(1, 0);
+    ssdpDevice->presentationURL(presentationURLBuf);
+    
+    ssdpServer->begin(ssdpDevice);
+    Serial.println("SSDP started for ESP32");
 #endif
 }
 
@@ -165,7 +207,7 @@ void WebServerManager::handleSSDPSchema() {
 #ifdef ESP8266_PLATFORM
     SSDP.schema(server->client());
 #elif defined(ESP32_PLATFORM)
-    // ESP32 SSDP schema handling
-    server->send(200, "text/xml", "<?xml version=\"1.0\"?><root></root>");
+    // ESP32 SSDP schema handling using uSSDP library
+    ssdpServer->schema(server->client());
 #endif
 }

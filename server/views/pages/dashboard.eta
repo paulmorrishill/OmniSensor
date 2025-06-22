@@ -1,4 +1,4 @@
-<% layout('./layouts/main') %>
+<% layout('../layouts/main') %>
 
 <div class="mdl-grid">
     <!-- System Stats -->
@@ -72,7 +72,7 @@
     <!-- Device Grid -->
     <% it.devices.forEach(function(device) { %>
         <div class="mdl-cell mdl-cell--4-col">
-            <%~ include('./partials/device-card', { device: device }) %>
+            <%~ include('../partials/device-card', { device: device }) %>
         </div>
     <% }) %>
 

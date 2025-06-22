@@ -2,23 +2,33 @@ import { Application } from "oak";
 import { oakCors } from "https://deno.land/x/cors/mod.ts";
 import { Eta } from "eta";
 
+// Import type extensions
+import "./src/types/oak.d.ts";
+
 import { StateManager } from "./src/managers/StateManager.ts";
 import { CommandQueue } from "./src/managers/CommandQueue.ts";
 import { DeviceManager } from "./src/managers/DeviceManager.ts";
+import { NetworkDiscovery, ServerConfig } from "./src/managers/NetworkDiscovery.ts";
 import { WebSocketHandler } from "./src/websocket/wsHandler.ts";
 
 import { createDeviceRoutes } from "./src/api/deviceRoutes.ts";
 import { createWebRoutes } from "./src/api/webRoutes.ts";
 import { createApiRoutes } from "./src/api/apiRoutes.ts";
+import { createDiscoveryRoutes } from "./src/api/discoveryRoutes.ts";
 import { errorHandler } from "./src/middleware/errorHandler.ts";
 
-const PORT = parseInt(Deno.env.get("PORT") || "8000");
+// Load configuration
+const configText = await Deno.readTextFile("./config.json");
+const config: ServerConfig = JSON.parse(configText);
+
+const PORT = parseInt(Deno.env.get("PORT") || config.server.port.toString());
 
 class WiFiDeviceServer {
   private app: Application;
   private stateManager: StateManager;
   private commandQueue: CommandQueue;
   private deviceManager: DeviceManager;
+  private networkDiscovery: NetworkDiscovery;
   private wsHandler: WebSocketHandler;
 
   constructor() {
@@ -26,6 +36,7 @@ class WiFiDeviceServer {
     this.stateManager = new StateManager();
     this.commandQueue = new CommandQueue(this.stateManager);
     this.deviceManager = new DeviceManager(this.stateManager, this.commandQueue);
+    this.networkDiscovery = new NetworkDiscovery(this.deviceManager, config);
     this.wsHandler = new WebSocketHandler(this.stateManager);
     
     this.setupMiddleware();
@@ -60,7 +71,7 @@ class WiFiDeviceServer {
     });
 
     // ETA template engine setup
-    const eta = new Eta({ views: "./views", cache: false });
+    const eta = new Eta({ views: `${Deno.cwd()}/views`, cache: false });
     
     // Add render method to context
     this.app.use(async (ctx, next) => {
@@ -99,6 +110,11 @@ class WiFiDeviceServer {
     this.app.use(apiRoutes.routes());
     this.app.use(apiRoutes.allowedMethods());
 
+    // Discovery routes
+    const discoveryRoutes = createDiscoveryRoutes(this.networkDiscovery);
+    this.app.use(discoveryRoutes.routes());
+    this.app.use(discoveryRoutes.allowedMethods());
+
     // Web interface routes
     const webRoutes = createWebRoutes(this.deviceManager);
     this.app.use(webRoutes.routes());
@@ -109,11 +125,13 @@ class WiFiDeviceServer {
     // Start managers
     this.commandQueue.start();
     this.deviceManager.start();
+    await this.networkDiscovery.start();
 
     console.log(`🚀 WiFi Device Management Server starting on port ${PORT}`);
     console.log(`📊 Dashboard: http://localhost:${PORT}`);
     console.log(`🔌 WebSocket: ws://localhost:${PORT}/ws`);
     console.log(`📡 Device API: http://localhost:${PORT}/register`);
+    console.log(`🔍 Network Discovery: ${config.discovery.enabled ? 'Enabled' : 'Disabled'}`);
     
     await this.app.listen({ port: PORT });
   }
@@ -123,6 +141,7 @@ class WiFiDeviceServer {
     
     this.deviceManager.stop();
     this.commandQueue.stop();
+    await this.networkDiscovery.stop();
     this.wsHandler.closeAllConnections();
     
     console.log("✅ Server stopped");
@@ -137,10 +156,13 @@ Deno.addSignalListener("SIGINT", async () => {
   Deno.exit(0);
 });
 
-Deno.addSignalListener("SIGTERM", async () => {
-  await server.stop();
-  Deno.exit(0);
-});
+// Only add SIGTERM listener on non-Windows platforms
+if (Deno.build.os !== "windows") {
+  Deno.addSignalListener("SIGTERM", async () => {
+    await server.stop();
+    Deno.exit(0);
+  });
+}
 
 // Start the server
 if (import.meta.main) {

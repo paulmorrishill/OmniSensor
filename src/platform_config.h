@@ -32,7 +32,7 @@
     #include <HTTPClient.h>
     #include <esp_sleep.h>
     #include <ESP32Servo.h>
-    // Note: ESP32 has built-in SSDP support, no separate include needed
+    #include <uSSDP.h>
     
     // Type aliases for compatibility
     typedef WebServer WebServerType;
@@ -59,6 +59,9 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <EEPROM.h>
+
+// Forward declarations
+class EEPROMManager;
 
 // Platform-specific function wrappers
 namespace PlatformUtils {
@@ -101,6 +104,12 @@ namespace PlatformUtils {
         #elif defined(ESP32_PLATFORM)
             client.begin(url);
         #endif
+    }
+    
+    // Wokwi emulator detection
+    inline bool isWokwiEmulator() {
+        // For now, always return true to use Wokwi-GUEST when in ESP32 environment
+        return true;
     }
 }
 

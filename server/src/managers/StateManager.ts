@@ -10,8 +10,16 @@ export class StateManager {
   constructor() {
     this.state = {
       devices: new Map(),
-      systemStats: this.calculateStats()
+      systemStats: {
+        totalDevices: 0,
+        onlineDevices: 0,
+        pendingCommands: 0,
+        uptime: 0,
+        lastUpdate: new Date()
+      }
     };
+    // Now that state is initialized, calculate the actual stats
+    this.updateStats();
   }
 
   // Device Management

@@ -80,6 +80,11 @@ bool WiFiManager::connectUsingSavedCredentials(String ssid, String password) {
     return true;
 }
 
+bool WiFiManager::connectToWokwiGuest() {
+    Serial.println("Attempting to connect to Wokwi-GUEST network");
+    return connectUsingSavedCredentials("Wokwi-GUEST", "");
+}
+
 void WiFiManager::scanNetworks(JsonArray& networksArray) {
     int totalNetworks = WiFi.scanNetworks();
     StaticJsonDocument<1024> thisNetwork;

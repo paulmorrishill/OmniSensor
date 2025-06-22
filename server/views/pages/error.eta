@@ -1,4 +1,4 @@
-<% layout('./layouts/main') %>
+<% layout('../layouts/main') %>
 
 <div class="mdl-grid">
     <div class="mdl-cell mdl-cell--12-col">
