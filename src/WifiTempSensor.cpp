@@ -90,8 +90,9 @@ void setup() {
     // Handle configuration mode - this will enter config mode if needed
     deviceManager->handleConfigurationMode();
     
-    // Try to connect to WiFi if credentials are available (even if server URL isn't set yet)
-    if (eepromManager->hasWiFiCredentials() && !wifiManager->isInConfigMode()) {
+    // Try to connect to WiFi if credentials are available
+    // Allow connection even in config mode (for server URL configuration)
+    if (eepromManager->hasWiFiCredentials()) {
         connectToWiFi();
     }
     

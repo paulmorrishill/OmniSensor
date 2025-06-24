@@ -73,15 +73,21 @@ void DeviceManager::initSerialNumber() {
 
 void DeviceManager::handleButtonPress() {
     unsigned long buttonPressedStart = millis();
+    bool ledState = false;
+    unsigned long lastFlash = 0;
+    const unsigned long RESET_THRESHOLD = 10000; // 10 seconds to reset
+    const unsigned long MAX_FLASH_INTERVAL = 500; // Slowest flash (ms)
+    const unsigned long MIN_FLASH_INTERVAL = 25;  // Fastest flash (ms)
 
     while (!digitalRead(BUTTON_PIN)) {
-        delay(100);
         unsigned long buttonPressDuration = millis() - buttonPressedStart;
+        
         if (buttonPressDuration > 1000) {
             digitalWrite(GREEN_PIN, HIGH); // Disable sleep
             stayAwake = true;
         }
-        if (buttonPressDuration > 10000) {
+        
+        if (buttonPressDuration > RESET_THRESHOLD) {
             // Hard reset
             Serial.println("Hard reset detected");
             clearConfiguration();
@@ -90,7 +96,30 @@ void DeviceManager::handleButtonPress() {
             PlatformUtils::restart();
             return;
         }
+        
+        // Calculate flash interval mathematically based on progress
+        // As we approach reset, the interval decreases exponentially
+        float progress = (float)buttonPressDuration / RESET_THRESHOLD;
+        progress = constrain(progress, 0.0, 1.0);
+        
+        // Exponential decay: starts slow, accelerates rapidly toward the end
+        float flashFactor = 1.0 - pow(progress, 2.5);
+        unsigned long flashInterval = MIN_FLASH_INTERVAL +
+            (unsigned long)(flashFactor * (MAX_FLASH_INTERVAL - MIN_FLASH_INTERVAL));
+        
+        // Flash the RED LED to show reset progress
+        if (millis() - lastFlash >= flashInterval) {
+            ledState = !ledState;
+            digitalWrite(RED_PIN, ledState ? HIGH : LOW);
+            lastFlash = millis();
+        }
+        
+        delay(10); // Small delay to prevent excessive CPU usage
     }
+    
+    // Turn off LEDs when button is released
+    digitalWrite(RED_PIN, LOW);
+    digitalWrite(GREEN_PIN, LOW);
 }
 
 void DeviceManager::clearConfiguration() {
@@ -130,7 +159,7 @@ bool DeviceManager::handleConfigurationMode() {
             lastConfigMessage = millis();
         }
         
-        // Enter config mode if not already in it (but allow WiFi to connect normally)
+        // Set config mode but don't enable hotspot - allow normal WiFi connection
         if (!inConfigMode) {
             Serial.println("Entering config mode for server URL configuration");
             wifiManager->setConfigMode(true);  // Set config mode but don't enable AP

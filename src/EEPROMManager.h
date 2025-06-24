@@ -52,6 +52,7 @@ public:
 private:
     void writeString(String input, int startPos);
     String readString(int position);
+    bool hasStringAt(int position);
 };
 
 #endif

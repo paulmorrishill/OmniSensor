@@ -109,7 +109,7 @@ namespace PlatformUtils {
     // Wokwi emulator detection
     inline bool isWokwiEmulator() {
         // For now, always return true to use Wokwi-GUEST when in ESP32 environment
-        return true;
+        return false;
     }
 }
 

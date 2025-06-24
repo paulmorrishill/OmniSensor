@@ -71,8 +71,7 @@ void EEPROMManager::setServerUrl(String server) {
 }
 
 bool EEPROMManager::hasServerUrl() {
-    String serverUrl = getServerUrl();
-    return serverUrl.length() > 0 && serverUrl != "";
+    return hasStringAt(EEPROM_SERVER_POSITION);
 }
 
 void EEPROMManager::addWiFiFailure(unsigned long timestamp) {
@@ -160,4 +159,9 @@ String EEPROMManager::readString(int position) {
     }
     Serial.println("\"");
     return output;
+}
+
+bool EEPROMManager::hasStringAt(int position) {
+    int length = EEPROM.read(position);
+    return length != 255 && length > 0;
 }
