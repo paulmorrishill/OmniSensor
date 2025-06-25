@@ -33,6 +33,10 @@ export interface DeviceModeRequest {
   mode: number;
 }
 
+export interface DeviceForceAwakeRequest {
+  forceAwake: boolean;
+}
+
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;

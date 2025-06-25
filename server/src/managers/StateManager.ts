@@ -1,9 +1,9 @@
-import { DeviceState, SystemState, SystemStats, ContactRecord } from "../types/device.ts";
+import { DeviceState, SystemState, SerializableSystemState, SystemStats, ContactRecord } from "../types/device.ts";
 import { Command } from "../types/command.ts";
 
 export class StateManager {
   private state: SystemState;
-  private listeners: Set<(state: SystemState) => void> = new Set();
+  private listeners: Set<(state: SerializableSystemState) => void> = new Set();
   private commands: Map<string, Command> = new Map();
   private startTime: Date = new Date();
 
@@ -47,12 +47,15 @@ export class StateManager {
       mode: deviceData.mode,
       isOnline: true,
       lastSeen: now,
-      contactHistory: existingDevice ? 
-        [...existingDevice.contactHistory.slice(-49), contactRecord] : 
+      contactHistory: existingDevice ?
+        [...existingDevice.contactHistory.slice(-49), contactRecord] :
         [contactRecord],
       currentOutput: existingDevice?.currentOutput ?? false,
       sensorData: existingDevice?.sensorData ?? [],
-      pendingCommands: existingDevice?.pendingCommands ?? []
+      pendingCommands: existingDevice?.pendingCommands ?? [],
+      sleepStatus: existingDevice?.sleepStatus ?? 'unknown',
+      forceAwake: existingDevice?.forceAwake ?? false,
+      lastAwakeCheck: existingDevice?.lastAwakeCheck ?? now
     };
 
     this.state.devices.set(deviceData.id, device);
@@ -93,6 +96,24 @@ export class StateManager {
 
     device.currentOutput = outputState;
     this.notifyListeners();
+  }
+
+  updateDeviceSleepStatus(deviceId: string, sleepStatus: 'awake' | 'asleep' | 'unknown'): void {
+    const device = this.state.devices.get(deviceId);
+    if (!device) return;
+
+    device.sleepStatus = sleepStatus;
+    device.lastAwakeCheck = new Date();
+    this.notifyListeners();
+  }
+
+  setDeviceForceAwake(deviceId: string, forceAwake: boolean): boolean {
+    const device = this.state.devices.get(deviceId);
+    if (!device) return false;
+
+    device.forceAwake = forceAwake;
+    this.notifyListeners();
+    return true;
   }
 
   // Command Management
@@ -174,6 +195,13 @@ export class StateManager {
     };
   }
 
+  getSerializableState(): SerializableSystemState {
+    return {
+      devices: Object.fromEntries(this.state.devices),
+      systemStats: { ...this.state.systemStats }
+    };
+  }
+
   getDevice(deviceId: string): DeviceState | undefined {
     const device = this.state.devices.get(deviceId);
     return device ? { ...device } : undefined;
@@ -184,16 +212,16 @@ export class StateManager {
   }
 
   // Listeners
-  addListener(listener: (state: SystemState) => void): void {
+  addListener(listener: (state: SerializableSystemState) => void): void {
     this.listeners.add(listener);
   }
 
-  removeListener(listener: (state: SystemState) => void): void {
+  removeListener(listener: (state: SerializableSystemState) => void): void {
     this.listeners.delete(listener);
   }
 
   private notifyListeners(): void {
-    const state = this.getState();
+    const state = this.getSerializableState();
     this.listeners.forEach(listener => {
       try {
         listener(state);

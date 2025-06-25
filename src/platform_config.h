@@ -111,6 +111,16 @@ namespace PlatformUtils {
         // For now, always return true to use Wokwi-GUEST when in ESP32 environment
         return false;
     }
+    
+    // Deep sleep wake detection
+    inline bool wokeFromDeepSleep() {
+        #ifdef ESP8266_PLATFORM
+            return ESP.getResetReason() == "Deep-Sleep Wake";
+        #elif defined(ESP32_PLATFORM)
+            return esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER;
+        #endif
+        return false;
+    }
 }
 
 #endif // PLATFORM_CONFIG_H

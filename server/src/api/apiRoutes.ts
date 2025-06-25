@@ -1,6 +1,6 @@
 import { Router } from "oak";
 import { DeviceManager } from "../managers/DeviceManager.ts";
-import { DeviceControlRequest, DeviceRenameRequest } from "../types/api.ts";
+import { DeviceControlRequest, DeviceRenameRequest, DeviceForceAwakeRequest } from "../types/api.ts";
 import { createApiResponse, createErrorResponse } from "../middleware/errorHandler.ts";
 
 export function createApiRoutes(deviceManager: DeviceManager): Router {
@@ -119,6 +119,45 @@ export function createApiRoutes(deviceManager: DeviceManager): Router {
     }
     
     ctx.response.body = createApiResponse({ retried: true });
+  });
+
+  // Force awake management
+  router.post("/api/devices/:id/force-awake", async (ctx) => {
+    const deviceId = ctx.params.id;
+    const body: DeviceForceAwakeRequest = await ctx.request.body({ type: "json" }).value;
+    
+    if (typeof body.forceAwake !== 'boolean') {
+      const { status, response } = createErrorResponse("Missing or invalid forceAwake parameter");
+      ctx.response.status = status;
+      ctx.response.body = response;
+      return;
+    }
+
+    const success = deviceManager.setDeviceForceAwake(deviceId, body.forceAwake);
+    
+    if (!success) {
+      const { status, response } = createErrorResponse("Device not found", 404);
+      ctx.response.status = status;
+      ctx.response.body = response;
+      return;
+    }
+
+    ctx.response.body = createApiResponse({ forceAwake: body.forceAwake });
+  });
+
+  router.post("/api/devices/:id/toggle-force-awake", (ctx) => {
+    const deviceId = ctx.params.id;
+    const success = deviceManager.toggleDeviceForceAwake(deviceId);
+    
+    if (!success) {
+      const { status, response } = createErrorResponse("Device not found", 404);
+      ctx.response.status = status;
+      ctx.response.body = response;
+      return;
+    }
+
+    const device = deviceManager.getDeviceStatus(deviceId);
+    ctx.response.body = createApiResponse({ forceAwake: device?.forceAwake });
   });
 
   return router;

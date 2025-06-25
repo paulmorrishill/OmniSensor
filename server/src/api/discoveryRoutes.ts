@@ -1,5 +1,11 @@
 import { Router } from "oak";
 import { NetworkDiscovery } from "../managers/NetworkDiscovery.ts";
+import {
+  ConfigureDeviceRequest,
+  DeviceConfiguration,
+  compareConfigurations,
+  isValidDeviceMode
+} from "../types/deviceConfig.ts";
 
 export function createDiscoveryRoutes(networkDiscovery: NetworkDiscovery): Router {
   const router = new Router();

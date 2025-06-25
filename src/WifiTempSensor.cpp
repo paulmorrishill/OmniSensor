@@ -65,6 +65,12 @@ void setup() {
     deviceManager->init();
     sensorManager->init();
     
+    // Check if device woke from deep sleep and update time accordingly
+    if (PlatformUtils::wokeFromDeepSleep()) {
+        Serial.println("Device woke from deep sleep - updating time");
+        deviceManager->updateTimeAfterSleep(DeviceManager::SLEEP_DURATION_MS);
+    }
+    
     // Configure A0 for analog reading and seed random number generator
     #ifdef ESP32_PLATFORM
         // ESP32 doesn't need pinMode for analog pins, but ensure it's available

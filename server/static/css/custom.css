@@ -25,6 +25,10 @@
     color: #F44336 !important;
 }
 
+.device-unknown {
+    color: #FF9800 !important;
+}
+
 /* Device cards */
 .device-card {
     transition: box-shadow 0.3s ease;
@@ -107,6 +111,39 @@
     font-size: 16px;
     vertical-align: middle;
     margin-right: 4px;
+}
+
+/* Sleep status indicator */
+.sleep-status {
+    display: flex;
+    align-items: center;
+    margin: 4px 0;
+    font-size: 14px;
+}
+
+.sleep-status .material-icons {
+    font-size: 18px;
+    margin-right: 6px;
+}
+
+/* Force awake toggle */
+.force-awake-toggle {
+    border: 1px solid #e0e0e0;
+    transition: background-color 0.2s ease;
+}
+
+.force-awake-toggle:hover {
+    background: #eeeeee !important;
+}
+
+.force-awake-toggle .mdl-switch {
+    width: 100%;
+}
+
+.force-awake-toggle .mdl-switch__label {
+    font-size: 13px;
+    color: #666;
+    font-weight: 500;
 }
 
 /* Loading states */

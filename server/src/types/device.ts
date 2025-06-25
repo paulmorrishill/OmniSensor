@@ -24,6 +24,9 @@ export interface DeviceState {
   currentOutput: boolean;        // Current on/off state
   sensorData: SensorReading[];
   pendingCommands: string[];     // Command IDs
+  sleepStatus: 'awake' | 'asleep' | 'unknown';  // Current sleep state
+  forceAwake: boolean;           // Manual stay-awake override
+  lastAwakeCheck: Date;          // Last time device checked if it should stay awake
 }
 
 export interface SystemStats {
@@ -36,6 +39,11 @@ export interface SystemStats {
 
 export interface SystemState {
   devices: Map<string, DeviceState>;
+  systemStats: SystemStats;
+}
+
+export interface SerializableSystemState {
+  devices: Record<string, DeviceState>;
   systemStats: SystemStats;
 }
 

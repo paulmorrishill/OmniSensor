@@ -2,8 +2,8 @@
 #include "EEPROMManager.h"
 
 WiFiManager::WiFiManager() :
-    local_IP(192, 168, 1, 1),
-    gateway(192, 168, 1, 1),
+    local_IP(192, 168, 10, 1),
+    gateway(192, 168, 10, 1),
     subnet(255, 255, 255, 0),
     configMode(false),
     deviceId(0),

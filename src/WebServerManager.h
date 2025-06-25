@@ -44,6 +44,8 @@ public:
     void handleConfigure();
     void handleReport();
     void handleCurrentConfig();
+    void handleGetConfig();
+    void handleSetConfig();
     void handleSetMode();
     void handleSSDPSchema();
 };

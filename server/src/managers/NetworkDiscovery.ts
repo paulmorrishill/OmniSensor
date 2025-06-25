@@ -1,6 +1,12 @@
 /// <reference lib="deno.unstable" />
 
 import { DeviceManager } from "./DeviceManager.ts";
+import {
+  DeviceConfiguration,
+  ConfigureDeviceRequest,
+  compareConfigurations,
+  isValidDeviceMode
+} from "../types/deviceConfig.ts";
 
 export interface DiscoveredDevice {
   ip: string;
@@ -365,8 +371,8 @@ export class NetworkDiscovery {
         return; // Not our device
       }
 
-      // Get device configuration
-      const configResponse = await fetch(`http://${ip}/currentConfig`, {
+      // Get device configuration using the new API
+      const configResponse = await fetch(`http://${ip}/api/config`, {
         signal: AbortSignal.timeout(3000)
       });
       
@@ -421,25 +427,66 @@ export class NetworkDiscovery {
       
       const serverUrl = `http://${this.config.server.ip}:${this.config.server.port}`;
       
-      // Use WiFi credentials from server configuration
-      // The device doesn't return the password for security reasons, so we use our configured credentials
-      const configData = new URLSearchParams({
+      // Prepare the desired configuration
+      const desiredConfig: DeviceConfiguration = {
         ssid: this.config.wifi.ssid,
-        password: this.config.wifi.password,
         alias: currentConfig.alias || device.hostname || `Device_${ip.split('.').pop()}`,
         server: serverUrl,
-        mode: currentConfig.mode?.toString() || this.config.device.defaultMode.toString()
-      });
+        mode: currentConfig.mode ?? this.config.device.defaultMode
+      };
       
-      console.log(`🔧 Configuring device with SSID: ${this.config.wifi.ssid}, Server: ${serverUrl}`);
+      // Validate the mode
+      if (!isValidDeviceMode(desiredConfig.mode)) {
+        console.error(`❌ Invalid device mode: ${desiredConfig.mode}, using default mode ${this.config.device.defaultMode}`);
+        desiredConfig.mode = this.config.device.defaultMode;
+      }
       
-      // Send configuration
-      const response = await fetch(`http://${ip}/configure`, {
+      // Get current configuration for comparison
+      const currentDeviceConfig: DeviceConfiguration = {
+        ssid: currentConfig.storedSsid || '',
+        alias: currentConfig.alias || '',
+        server: currentConfig.server || '',
+        mode: currentConfig.mode ?? 0
+      };
+      
+      // Compare configurations to see if update is needed
+      const comparison = compareConfigurations(currentDeviceConfig, desiredConfig);
+      
+      if (!comparison.hasChanges) {
+        console.log(`✅ Device at ${ip} already has correct configuration - no update needed`);
+        device.isConfigured = true;
+        this.discoveredDevices.set(ip, device);
+        return;
+      }
+      
+      // Log what will be changed
+      const changes: string[] = [];
+      if (!comparison.ssid) changes.push(`SSID: "${currentDeviceConfig.ssid}" → "${desiredConfig.ssid}"`);
+      if (!comparison.alias) changes.push(`Alias: "${currentDeviceConfig.alias}" → "${desiredConfig.alias}"`);
+      if (!comparison.server) changes.push(`Server: "${currentDeviceConfig.server}" → "${desiredConfig.server}"`);
+      if (!comparison.mode) changes.push(`Mode: ${currentDeviceConfig.mode} → ${desiredConfig.mode}`);
+      
+      console.log(`🔧 Configuration changes needed for device at ${ip}:`);
+      changes.forEach(change => console.log(`   - ${change}`));
+      
+      // Prepare JSON configuration data for the new API
+      const configData = {
+        ssid: desiredConfig.ssid,
+        password: this.config.wifi.password,
+        alias: desiredConfig.alias,
+        server: desiredConfig.server,
+        mode: desiredConfig.mode
+      };
+      
+      console.log(`🔧 Sending configuration update to device at ${ip}...`);
+      
+      // Send configuration using the new JSON API
+      const response = await fetch(`http://${ip}/api/config`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/json'
         },
-        body: configData.toString(),
+        body: JSON.stringify(configData),
         signal: AbortSignal.timeout(this.config.device.configTimeout)
       });
       
@@ -486,13 +533,23 @@ export class NetworkDiscovery {
     }
 
     try {
-      const configResponse = await fetch(`http://${ip}/currentConfig`);
+      console.log(`🔧 Manual configuration requested for device at ${ip}`);
+      
+      const configResponse = await fetch(`http://${ip}/api/config`, {
+        signal: AbortSignal.timeout(3000)
+      });
+      
+      if (!configResponse.ok) {
+        console.error(`❌ Failed to get current config from device at ${ip}: ${configResponse.status}`);
+        return false;
+      }
+      
       const currentConfig = await configResponse.json();
       
       await this.configureDevice(ip, device, currentConfig);
       return device.isConfigured;
     } catch (error) {
-      console.error(`Failed to manually configure device at ${ip}:`, error);
+      console.error(`❌ Failed to manually configure device at ${ip}:`, error);
       return false;
     }
   }

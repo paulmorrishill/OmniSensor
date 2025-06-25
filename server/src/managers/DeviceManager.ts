@@ -48,11 +48,22 @@ export class DeviceManager {
   handleShouldRemainAwake(deviceId: string): boolean {
     this.stateManager.updateDeviceContact(deviceId, 'should-remain-awake');
     
-    // Check if device has pending commands
-    const pendingCommands = this.stateManager.getPendingCommandsForDevice(deviceId);
-    const shouldStayAwake = pendingCommands.length > 0;
+    const device = this.stateManager.getDevice(deviceId);
+    if (!device) {
+      console.log(`Device ${deviceId} not found`);
+      return false;
+    }
     
-    console.log(`Device ${deviceId} should remain awake: ${shouldStayAwake} (${pendingCommands.length} pending commands)`);
+    // Check if device has pending commands or is forced to stay awake
+    const pendingCommands = this.stateManager.getPendingCommandsForDevice(deviceId);
+    const hasPendingCommands = pendingCommands.length > 0;
+    const shouldStayAwake = hasPendingCommands || device.forceAwake;
+    
+    // Update the device's sleep status based on our decision
+    const sleepStatus = shouldStayAwake ? 'awake' : 'asleep';
+    this.stateManager.updateDeviceSleepStatus(deviceId, sleepStatus);
+    
+    console.log(`Device ${deviceId} should remain awake: ${shouldStayAwake} (${pendingCommands.length} pending commands, forceAwake: ${device.forceAwake})`);
     
     return shouldStayAwake;
   }
@@ -192,5 +203,33 @@ export class DeviceManager {
 
   retryCommand(commandId: string): boolean {
     return this.commandQueue.retryCommand(commandId);
+  }
+
+  // Force awake management
+  setDeviceForceAwake(deviceId: string, forceAwake: boolean): boolean {
+    const device = this.stateManager.getDevice(deviceId);
+    if (!device) {
+      console.error(`Cannot set force awake for device ${deviceId}: device not found`);
+      return false;
+    }
+
+    const success = this.stateManager.setDeviceForceAwake(deviceId, forceAwake);
+    
+    if (success) {
+      console.log(`Device ${deviceId} (${device.alias}) force awake set to: ${forceAwake}`);
+    }
+    
+    return success;
+  }
+
+  toggleDeviceForceAwake(deviceId: string): boolean {
+    const device = this.stateManager.getDevice(deviceId);
+    if (!device) {
+      console.error(`Cannot toggle force awake for device ${deviceId}: device not found`);
+      return false;
+    }
+
+    const newForceAwake = !device.forceAwake;
+    return this.setDeviceForceAwake(deviceId, newForceAwake);
   }
 }

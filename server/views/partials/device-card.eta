@@ -14,9 +14,16 @@
             <%= it.device.isOnline ? 'Online' : 'Offline' %>
         </div>
         
+        <div class="sleep-status <%= it.device.sleepStatus === 'awake' ? 'device-online' : it.device.sleepStatus === 'asleep' ? 'device-offline' : 'device-unknown' %>">
+            <i class="material-icons">
+                <%= it.device.sleepStatus === 'awake' ? 'visibility' : it.device.sleepStatus === 'asleep' ? 'visibility_off' : 'help_outline' %>
+            </i>
+            <%= it.device.sleepStatus === 'awake' ? 'Awake' : it.device.sleepStatus === 'asleep' ? 'Asleep' : 'Unknown' %>
+        </div>
+        
         <div class="device-mode">
-            Mode: <%= it.device.mode %> 
-            <% 
+            Mode: <%= it.device.mode %>
+            <%
             const modes = {0: 'Servo', 1: 'Input Switch', 2: 'Thermometer', 3: 'Soil Sensor', 4: 'Relay', 5: 'RGB LED'};
             %>
             (<%= modes[it.device.mode] || 'Unknown' %>)
@@ -41,6 +48,15 @@
                 <%= it.device.pendingCommandCount %> pending command(s)
             </div>
         <% } %>
+        
+        <div class="force-awake-toggle" style="margin-top: 12px; padding: 8px; background: #f5f5f5; border-radius: 4px;">
+            <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="force-awake-<%= it.device.id %>">
+                <input type="checkbox" id="force-awake-<%= it.device.id %>" class="mdl-switch__input"
+                       <%= it.device.forceAwake ? 'checked' : '' %>
+                       onchange="toggleForceAwake('<%= it.device.id %>')">
+                <span class="mdl-switch__label">Force Stay Awake</span>
+            </label>
+        </div>
     </div>
     
     <div class="mdl-card__actions mdl-card--border">

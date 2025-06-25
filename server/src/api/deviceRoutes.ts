@@ -25,10 +25,17 @@ export function createDeviceRoutes(deviceManager: DeviceManager): Router {
         return;
       }
 
+      // console log
+        console.log("Device registration received:", registration);
+
+
       deviceManager.handleDeviceRegistration(registration);
       
       ctx.response.status = 200;
-      ctx.response.body = { success: true };
+      ctx.response.body = {
+        success: true,
+        timestamp: Date.now() // Unix timestamp in milliseconds
+      };
       
     } catch (error) {
       console.error("Error in device registration:", error);

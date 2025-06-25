@@ -10,6 +10,11 @@ class WiFiManager;
 
 
 class DeviceManager {
+public:
+    // Sleep configuration (public for external access)
+    static const unsigned long SLEEP_DURATION_MS = 60000; // 1 minute in milliseconds
+    static const unsigned long SLEEP_DURATION_US = SLEEP_DURATION_MS * 1000; // Convert to microseconds
+
 private:
     // Device modes
     static const int MODE_SERVO = 0;
@@ -38,6 +43,12 @@ private:
     bool stayAwake;
     unsigned long timeAtLastSend;
     unsigned long timeAtLastCheck;
+    
+    // Time synchronization
+    unsigned long long serverTimestamp;  // Server time in milliseconds
+    unsigned long localTimeAtSync;       // Local millis() when sync occurred
+    unsigned long sleepDurationMs;       // Duration of last sleep in milliseconds
+    bool timeIsSynchronized;             // Whether we have valid time sync
 
 public:
     DeviceManager(EEPROMManager* eeprom, SensorManager* sensor, WiFiManager* wifi);
@@ -62,6 +73,13 @@ public:
     void registerWithServer();
     void sendFailureLogToServer();
     void reportNow();
+    
+    // Time synchronization
+    void syncTimeWithServer(unsigned long long serverTime);
+    unsigned long long getCurrentTime();
+    void updateTimeAfterSleep(unsigned long sleepDuration);
+    bool isTimeSynchronized() const { return timeIsSynchronized; }
+    String getCurrentTimeString(); // For debugging/display purposes
     
     // Getters
     int getDeviceId() const { return deviceId; }

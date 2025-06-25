@@ -1,5 +1,6 @@
 import { StateManager } from "../managers/StateManager.ts";
 import { StateMessage } from "../types/api.ts";
+import { SerializableSystemState } from "../types/device.ts";
 
 export class WebSocketHandler {
   private stateManager: StateManager;
@@ -9,7 +10,7 @@ export class WebSocketHandler {
     this.stateManager = stateManager;
     
     // Listen for state changes and broadcast to all connected clients
-    this.stateManager.addListener((state) => {
+    this.stateManager.addListener((state: SerializableSystemState) => {
       this.broadcastState(state);
     });
   }
@@ -20,7 +21,7 @@ export class WebSocketHandler {
     this.connections.add(ws);
 
     // Send current state immediately upon connection
-    this.sendStateToClient(ws, this.stateManager.getState());
+    this.sendStateToClient(ws, this.stateManager.getSerializableState());
 
     ws.addEventListener('close', () => {
       console.log('WebSocket connection closed');
@@ -50,7 +51,7 @@ export class WebSocketHandler {
         break;
       
       case 'request-state':
-        this.sendStateToClient(ws, this.stateManager.getState());
+        this.sendStateToClient(ws, this.stateManager.getSerializableState());
         break;
       
       default:

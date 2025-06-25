@@ -7,28 +7,50 @@ Converts HTML files to C++ string constants for embedded projects
 import os
 import sys
 import re
+import subprocess
 from pathlib import Path
 
-def minify_html(html_content):
+def install_minify_html():
+    """Install minify-html package if not available"""
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "minify-html"])
+        return True
+    except subprocess.CalledProcessError:
+        print("Failed to install minify-html.")
+        return False
+
+# Try to import minify-html, install if not available
+try:
+    import minify_html
+except ImportError:
+    print("minify-html not found. Installing...")
+    if install_minify_html():
+        # Force reload of modules after installation
+        import importlib
+        import sys
+        if 'minify_html' in sys.modules:
+            importlib.reload(sys.modules['minify_html'])
+        try:
+            import minify_html
+            print("minify-html installed successfully!")
+        except ImportError:
+            print("Failed to import minify-html after installation.")
+            print("Try running the script again or manually install with: pip install minify-html")
+            sys.exit(1)
+    else:
+        print("Failed to install minify-html. Exiting.")
+        sys.exit(1)
+
+def minify_html_content(html_content):
     """
-    Minify HTML by removing unnecessary whitespace and comments
+    Minify HTML using minify-html library with conservative settings
     """
-    # Remove HTML comments
-    html_content = re.sub(r'<!--.*?-->', '', html_content, flags=re.DOTALL)
-    
-    # Remove extra whitespace between tags
-    html_content = re.sub(r'>\s+<', '><', html_content)
-    
-    # Remove leading/trailing whitespace from lines
-    lines = [line.strip() for line in html_content.split('\n')]
-    
-    # Remove empty lines
-    lines = [line for line in lines if line]
-    
-    # Join lines with minimal spacing
-    html_content = ''.join(lines)
-    
-    return html_content
+    # Use minify-html with basic settings, disable JS minification to avoid crashes
+    return minify_html.minify(
+        html_content,
+        minify_js=False,  # Disable JavaScript minification to avoid crashes
+        minify_css=True   # Keep CSS minification
+    )
 
 def escape_string(content):
     """
@@ -76,7 +98,7 @@ def generate_header(html_files, output_file):
                 html_content = f.read()
             
             # Minify HTML
-            minified = minify_html(html_content)
+            minified = minify_html_content(html_content)
             
             # Escape for C++ string
             escaped = escape_string(minified)

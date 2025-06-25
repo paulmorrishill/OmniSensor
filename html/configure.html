@@ -2,67 +2,328 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>Device Configuration</title>
+    <!-- Angular Material CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://unpkg.com/@angular/material@15/prebuilt-themes/indigo-pink.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 24px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            color: #3f51b5;
+            font-weight: 400;
+            font-size: 24px;
+        }
+        
+        .form-field {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .form-field label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .form-field input,
+        .form-field select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            font-family: 'Roboto', sans-serif;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        .form-field input:focus,
+        .form-field select:focus {
+            outline: none;
+            border-color: #3f51b5;
+            box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.2);
+        }
+        
+        .form-field input::placeholder {
+            color: #999;
+        }
+        
+        .submit-button {
+            width: 100%;
+            padding: 12px 24px;
+            background-color: #3f51b5;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-bottom: 16px;
+        }
+        
+        .submit-button:hover {
+            background-color: #303f9f;
+        }
+        
+        .submit-button:active {
+            background-color: #283593;
+        }
+        
+        .secondary-link {
+            display: block;
+            text-align: center;
+            color: #3f51b5;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .secondary-link:hover {
+            text-decoration: underline;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .status-message {
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        
+        .status-success {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .status-error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+    </style>
 </head>
 <body>
-    <div class="form">
-        SSID: <select id="ssid"></select><br>
-        Password: <input type="text" id="password" placeholder="Password"><br>
-        Alias: <input type="text" id="alias" placeholder="Alias"><br>
-        Server: <input type="text" id="server" placeholder="Server"><br>
-        MODE: <select id="mode">
-            <option value="0">Servo</option>
-            <option value="1">Input switch</option>
-            <option value="2">Thermometer</option>
-            <option value="3">Soil sensor</option>
-            <option value="4">Relay</option>
-            <option value="5">RGB LED</option>
-            <option value="6">Latching Valve</option>
-        </select><br>
-        <button type="button" class="md-button md-button-raised" onclick="submit()">Submit</button>
-        <a href="/color">Pick colors</a>
+    <div class="container">
+        <div class="header">
+            <h1>Device Configuration</h1>
+        </div>
+        
+        <div id="status" class="status-message"></div>
+        
+        <form id="configForm">
+            <div class="form-field">
+                <label for="ssid">WiFi Network</label>
+                <select id="ssid" required>
+                    <option value="">Loading networks...</option>
+                </select>
+            </div>
+            
+            <div class="form-field">
+                <label for="password">WiFi Password</label>
+                <input type="password" id="password" placeholder="Enter WiFi password">
+            </div>
+            
+            <div class="form-field">
+                <label for="alias">Device Alias</label>
+                <input type="text" id="alias" placeholder="Enter device name" required>
+            </div>
+            
+            <div class="form-field">
+                <label for="server">Server URL</label>
+                <input type="text" id="server" placeholder="http://server:port" required>
+            </div>
+            
+            <div class="form-field">
+                <label for="mode">Device Mode</label>
+                <select id="mode" required>
+                    <option value="0">Servo</option>
+                    <option value="1">Input Switch</option>
+                    <option value="2">Thermometer</option>
+                    <option value="3">Soil Sensor</option>
+                    <option value="4">Relay</option>
+                    <option value="5">RGB LED</option>
+                    <option value="6">Latching Valve</option>
+                </select>
+            </div>
+            
+            <button type="button" class="submit-button" onclick="submitConfig()">
+                Update Configuration
+            </button>
+            
+            <a href="/color" class="secondary-link">Configure RGB Colors</a>
+        </form>
     </div>
+    
     <script>
-        const fields = ["ssid", "alias", "server", "password", "mode"];
+        const fields = ["ssid", "alias", "server", "mode"];
+        let currentConfig = {};
         
-        function submit() {
-            let e = new XMLHttpRequest;
-            e.addEventListener("load", function() {
-                console.log(this.responseText);
-            });
-            e.open("POST", "/configure");
-            e.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-            let n = "";
-            for (var t of fields) {
-                var o = document.getElementById(t).value;
-                n += `${t}=${encodeURIComponent(o)}&`;
+        function showStatus(message, isError = false) {
+            const statusEl = document.getElementById("status");
+            statusEl.textContent = message;
+            statusEl.className = `status-message ${isError ? 'status-error' : 'status-success'}`;
+            statusEl.style.display = 'block';
+            
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 5000);
+        }
+        
+        function configsAreEqual(config1, config2) {
+            return config1.ssid === config2.ssid &&
+                   config1.alias === config2.alias &&
+                   config1.server === config2.server &&
+                   config1.mode === config2.mode;
+        }
+        
+        function submitConfig() {
+            const newConfig = {};
+            const password = document.getElementById("password").value;
+            
+            // Collect form data
+            for (const field of fields) {
+                newConfig[field] = document.getElementById(field).value;
             }
-            e.send(n);
-        }
-        
-        function loadWifi() {
-            var e = new XMLHttpRequest;
-            e.addEventListener("load", function() {
-                var e = JSON.parse(this.responseText);
-                var n = e.networks;
-                const t = document.getElementById("ssid");
-                for (var o, s = 0; s < n.length; s++) {
-                    var d = n[s];
-                    var i = document.createElement("option");
-                    i.value = d.ssid;
-                    i.innerHTML = d.ssid + " " + d.encryption + " (" + d.rssi + ")";
-                    t.appendChild(i);
-                }
-                for (o of fields) {
-                    var r = e[o];
-                    const a = document.getElementById(o);
-                    a.value = r;
+            
+            // Validate required fields
+            if (!newConfig.ssid || !newConfig.alias || !newConfig.server) {
+                showStatus("Please fill in all required fields", true);
+                return;
+            }
+            
+            // Check if configuration has actually changed
+            if (configsAreEqual(currentConfig, newConfig) && !password) {
+                showStatus("Configuration is already up to date", false);
+                return;
+            }
+            
+            const xhr = new XMLHttpRequest();
+            xhr.addEventListener("load", function() {
+                if (this.status === 200) {
+                    showStatus("Configuration updated successfully! Device will restart...", false);
+                } else {
+                    showStatus("Failed to update configuration", true);
                 }
             });
-            e.open("GET", "/currentConfig");
-            e.send();
+            
+            xhr.addEventListener("error", function() {
+                showStatus("Network error occurred", true);
+            });
+            
+            xhr.open("POST", "/configure");
+            xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            
+            // Build form data
+            const formData = new URLSearchParams();
+            for (const field of fields) {
+                formData.append(field, newConfig[field]);
+            }
+            
+            // Only include password if it was entered
+            if (password) {
+                formData.append("password", password);
+            }
+            
+            xhr.send(formData.toString());
         }
         
-        loadWifi();
+        function loadConfiguration() {
+            const xhr = new XMLHttpRequest();
+            xhr.addEventListener("load", function() {
+                if (this.status !== 200) {
+                    showStatus("Failed to load current configuration", true);
+                    return;
+                }
+                
+                try {
+                    const response = JSON.parse(this.responseText);
+                    const networks = response.networks || [];
+                    
+                    // Populate WiFi networks
+                    const ssidSelect = document.getElementById("ssid");
+                    ssidSelect.innerHTML = "";
+                    
+                    if (networks.length === 0) {
+                        const option = document.createElement("option");
+                        option.value = "";
+                        option.textContent = "No networks found";
+                        ssidSelect.appendChild(option);
+                    } else {
+                        networks.forEach(network => {
+                            const option = document.createElement("option");
+                            option.value = network.ssid;
+                            option.textContent = `${network.ssid} ${network.encryption} (${network.rssi}dBm)`;
+                            ssidSelect.appendChild(option);
+                        });
+                    }
+                    
+                    // Store current config for comparison
+                    currentConfig = {
+                        ssid: response.storedSsid || "",
+                        alias: response.alias || "",
+                        server: response.server || "",
+                        mode: response.mode?.toString() || "0"
+                    };
+                    
+                    // Populate form fields with current values
+                    for (const field of fields) {
+                        const element = document.getElementById(field);
+                        const value = field === "ssid" ? currentConfig.ssid : currentConfig[field];
+                        if (element && value !== undefined && value !== null) {
+                            element.value = value;
+                        }
+                    }
+                    
+                    // Don't populate password field for security
+                    document.getElementById("password").value = "";
+                    
+                } catch (error) {
+                    console.error("Error parsing configuration:", error);
+                    showStatus("Error loading configuration", true);
+                }
+            });
+            
+            xhr.addEventListener("error", function() {
+                showStatus("Failed to connect to device", true);
+            });
+            
+            xhr.open("GET", "/currentConfig");
+            xhr.send();
+        }
+        
+        // Load configuration when page loads
+        loadConfiguration();
     </script>
 </body>
 </html>

@@ -22,7 +22,8 @@ void tcpCleanup() {
 
 DeviceManager::DeviceManager(EEPROMManager* eeprom, SensorManager* sensor, WiFiManager* wifi) :
     eepromManager(eeprom), sensorManager(sensor), wifiManager(wifi), deviceId(0), operatingMode(0),
-    stayAwake(false), timeAtLastSend(0), timeAtLastCheck(0) {
+    stayAwake(false), timeAtLastSend(0), timeAtLastCheck(0), serverTimestamp(0),
+    localTimeAtSync(0), sleepDurationMs(SLEEP_DURATION_MS), timeIsSynchronized(false) {
 }
 
 DeviceManager::~DeviceManager() {
@@ -258,8 +259,15 @@ void DeviceManager::enterDeepSleep() {
     Serial.print("Been up for ");
     Serial.print(millis());
     Serial.println(" milliseconds");
+    
+    // Store sleep duration for time tracking
+    sleepDurationMs = SLEEP_DURATION_MS;
+    Serial.print("Entering deep sleep for ");
+    Serial.print(sleepDurationMs);
+    Serial.println(" milliseconds");
+    
     Serial.println("Sleeping...");
-    PlatformUtils::deepSleep(1 * 60 * 1000000);
+    PlatformUtils::deepSleep(SLEEP_DURATION_US);
 }
 
 void DeviceManager::registerWithServer() {
@@ -280,6 +288,19 @@ void DeviceManager::registerWithServer() {
         Serial.println("Response: ");
         String payload = httpClient.getString();
         Serial.println(payload);
+        
+        // Parse response to extract timestamp for time synchronization
+        if (httpCode == 200) {
+            StaticJsonDocument<200> responseDoc;
+            DeserializationError error = deserializeJson(responseDoc, payload);
+            if (!error && responseDoc.containsKey("timestamp")) {
+                unsigned long long serverTime = responseDoc["timestamp"];
+                syncTimeWithServer(serverTime);
+                Serial.println("Time synchronized with server");
+            }
+        }
+    } else {
+        Serial.println("Got 0 response code");
     }
     httpClient.end();
 }
@@ -333,6 +354,12 @@ void DeviceManager::sendFailureLogToServer() {
 
 void DeviceManager::reportNow() {
     Serial.println("Reporting sensor data");
+    
+    // Show current time if synchronized
+    if (timeIsSynchronized) {
+        Serial.print("Current time: ");
+        Serial.println(getCurrentTimeString());
+    }
     
     if (operatingMode == MODE_THERMOMETER) {
         Serial.println("Reading temperature");
@@ -420,4 +447,57 @@ void DeviceManager::openValve() {
 
 void DeviceManager::closeValve() {
     setValveState(false);
+}
+
+// Time synchronization methods
+void DeviceManager::syncTimeWithServer(unsigned long long serverTime) {
+    serverTimestamp = serverTime;
+    localTimeAtSync = millis();
+    timeIsSynchronized = true;
+    
+    Serial.print("Time synchronized - Server time: ");
+    Serial.print((unsigned long)(serverTime / 1000)); // Convert to seconds for display
+    Serial.print(", Local millis: ");
+    Serial.println(localTimeAtSync);
+}
+
+unsigned long long DeviceManager::getCurrentTime() {
+    if (!timeIsSynchronized) {
+        return 0; // Return 0 if time is not synchronized
+    }
+    
+    unsigned long currentLocalTime = millis();
+    unsigned long elapsedSinceSync = currentLocalTime - localTimeAtSync;
+    
+    // Handle millis() rollover (occurs every ~49 days)
+    if (currentLocalTime < localTimeAtSync) {
+        elapsedSinceSync = (0xFFFFFFFF - localTimeAtSync) + currentLocalTime + 1;
+    }
+    
+    return serverTimestamp + elapsedSinceSync;
+}
+
+void DeviceManager::updateTimeAfterSleep(unsigned long sleepDuration) {
+    if (timeIsSynchronized) {
+        // Update our time tracking after waking from sleep
+        localTimeAtSync = millis(); // Reset local time reference
+        serverTimestamp += sleepDuration; // Add sleep duration to server time
+        
+        Serial.print("Time updated after sleep - Added ");
+        Serial.print(sleepDuration);
+        Serial.print("ms, Current estimated time: ");
+        Serial.println(getCurrentTimeString());
+    }
+}
+
+String DeviceManager::getCurrentTimeString() {
+    if (!timeIsSynchronized) {
+        return "Time not synchronized";
+    }
+    
+    unsigned long long currentTime = getCurrentTime();
+    unsigned long timeInSeconds = (unsigned long)(currentTime / 1000);
+    
+    // Simple time formatting (Unix timestamp)
+    return "Unix: " + String(timeInSeconds) + " (" + String(currentTime) + "ms)";
 }

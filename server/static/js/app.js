@@ -45,55 +45,113 @@ function updateUI(state) {
 
 function updateDeviceCards(devices) {
     // Convert Map to Array if needed
-    const deviceArray = devices instanceof Map ? Array.from(devices.values()) : 
+    const deviceArray = devices instanceof Map ? Array.from(devices.values()) :
                        Array.isArray(devices) ? devices : Object.values(devices);
     
+    // Check if there are new devices not in the DOM
+    const existingDeviceIds = new Set();
+    document.querySelectorAll('[data-device-id]').forEach(element => {
+        const deviceId = element.getAttribute('data-device-id');
+        if (deviceId) existingDeviceIds.add(deviceId);
+    });
+    
+    const newDevices = deviceArray.filter(device => !existingDeviceIds.has(device.id));
+    
+    if (newDevices.length > 0) {
+        showNotification(`${newDevices.length} new device(s) registered. Refresh to view them.`, 'info');
+    }
+    
+    // Update existing device cards
     deviceArray.forEach(device => {
         updateDeviceCard(device);
     });
 }
 
 function updateDeviceCard(device) {
+    // Find the device card container by looking for the alias element with data-device-id
+    const aliasElement = document.querySelector(`[data-device-id="${device.id}"]`);
+    if (!aliasElement) return; // Device card doesn't exist in DOM
+    
+    // Get the device card container (should be a parent of the alias element)
+    const deviceCard = aliasElement.closest('.device-card');
+    if (!deviceCard) return;
+    
     // Update device alias
-    const aliasElement = document.querySelector(`[data-device-id="${device.id}"] .device-alias`);
-    if (aliasElement) {
-        aliasElement.textContent = device.alias;
-    }
+    aliasElement.textContent = device.alias;
     
     // Update online status
-    const statusElements = document.querySelectorAll(`[data-device-id="${device.id}"] .device-status`);
-    statusElements.forEach(element => {
-        const statusIcon = element.querySelector('.material-icons');
+    const statusElement = deviceCard.querySelector('.device-status > div');
+    if (statusElement) {
+        const statusIcon = statusElement.querySelector('.material-icons');
         const statusText = statusIcon ? statusIcon.nextSibling : null;
         
         if (statusIcon) {
             statusIcon.textContent = device.isOnline ? 'wifi' : 'wifi_off';
-            statusIcon.parentElement.className = device.isOnline ? 'device-online' : 'device-offline';
+            statusElement.className = device.isOnline ? 'device-online' : 'device-offline';
         }
         
         if (statusText) {
             statusText.textContent = device.isOnline ? ' Online' : ' Offline';
         }
-    });
+    }
+    
+    // Update sleep status
+    const sleepStatusElement = deviceCard.querySelector('.sleep-status');
+    if (sleepStatusElement) {
+        const sleepIcon = sleepStatusElement.querySelector('.material-icons');
+        const sleepText = sleepIcon ? sleepIcon.nextSibling : null;
+        
+        if (sleepIcon && sleepText) {
+            switch (device.sleepStatus) {
+                case 'awake':
+                    sleepIcon.textContent = 'visibility';
+                    sleepText.textContent = ' Awake';
+                    sleepStatusElement.className = 'sleep-status device-online';
+                    break;
+                case 'asleep':
+                    sleepIcon.textContent = 'visibility_off';
+                    sleepText.textContent = ' Asleep';
+                    sleepStatusElement.className = 'sleep-status device-offline';
+                    break;
+                default:
+                    sleepIcon.textContent = 'help_outline';
+                    sleepText.textContent = ' Unknown';
+                    sleepStatusElement.className = 'sleep-status device-unknown';
+                    break;
+            }
+        }
+    }
+    
+    // Update force awake toggle
+    const forceAwakeCheckbox = deviceCard.querySelector('.force-awake-toggle input[type="checkbox"]');
+    if (forceAwakeCheckbox) {
+        forceAwakeCheckbox.checked = device.forceAwake || false;
+    }
     
     // Update output state
-    const outputElements = document.querySelectorAll(`[data-device-id="${device.id}"] .output-state`);
-    outputElements.forEach(element => {
-        element.textContent = device.currentOutput ? 'ON' : 'OFF';
-        element.className = device.currentOutput ? 'device-online' : 'device-offline';
-    });
+    const outputElement = deviceCard.querySelector('.mdl-card__supporting-text span');
+    if (outputElement && outputElement.textContent && (outputElement.textContent.includes('ON') || outputElement.textContent.includes('OFF'))) {
+        outputElement.textContent = device.currentOutput ? 'ON' : 'OFF';
+        outputElement.className = device.currentOutput ? 'device-online' : 'device-offline';
+    }
+    
+    // Update last seen
+    const lastSeenElement = deviceCard.querySelector('.last-seen');
+    if (lastSeenElement) {
+        lastSeenElement.textContent = `Last seen: ${new Date(device.lastSeen).toLocaleString()}`;
+    }
     
     // Update pending commands count
-    const pendingElements = document.querySelectorAll(`[data-device-id="${device.id}"] .pending-commands`);
-    pendingElements.forEach(element => {
-        const count = device.pendingCommandCount || 0;
+    const pendingElement = deviceCard.querySelector('[style*="color: #FF9800"]');
+    if (pendingElement) {
+        const count = device.pendingCommands ? device.pendingCommands.length : 0;
         if (count > 0) {
-            element.style.display = 'block';
-            element.querySelector('.command-count').textContent = count;
+            pendingElement.style.display = 'block';
+            pendingElement.innerHTML = `<i class="material-icons" style="font-size: 16px; vertical-align: middle;">schedule</i> ${count} pending command(s)`;
         } else {
-            element.style.display = 'none';
+            pendingElement.style.display = 'none';
         }
-    });
+    }
 }
 
 function updateSystemStats(stats) {
@@ -195,6 +253,28 @@ function renameDevice(deviceId, newAlias) {
     });
 }
 
+function toggleForceAwake(deviceId) {
+    fetch(`/api/devices/${deviceId}/toggle-force-awake`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const status = data.data.forceAwake ? 'enabled' : 'disabled';
+            showNotification(`Force awake ${status} for device`);
+        } else {
+            showNotification(`Failed to toggle force awake: ${data.error}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error toggling force awake:', error);
+        showNotification('Failed to toggle force awake', 'error');
+    });
+}
+
 // Utility functions
 function showNotification(message, type = 'info') {
     // Create notification element
@@ -277,4 +357,5 @@ function formatTimeAgo(timestamp) {
 window.controlDevice = controlDevice;
 window.editDeviceName = editDeviceName;
 window.renameDevice = renameDevice;
+window.toggleForceAwake = toggleForceAwake;
 window.showNotification = showNotification;

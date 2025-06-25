@@ -61,11 +61,47 @@ def run_html_generator():
         print(f"Failed to run HTML generator: {e}")
         return False
 
+def run_build_increment():
+    """
+    Run the build number incrementer
+    """
+    print("=" * 50)
+    print("Incrementing build number...")
+    print("=" * 50)
+    
+    # Define paths
+    version_header = project_root / "src" / "version.h"
+    increment_script = project_root / "tools" / "increment_build.py"
+    
+    # Build command
+    cmd = [sys.executable, str(increment_script), str(version_header)]
+    
+    try:
+        # Run the incrementer
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_root))
+        
+        if result.returncode == 0:
+            print(result.stdout)
+            print("Build number incremented successfully!")
+            return True
+        else:
+            print("Error incrementing build number:")
+            print(result.stderr)
+            return False
+            
+    except Exception as e:
+        print(f"Failed to run build incrementer: {e}")
+        return False
+
 def main():
     """
     Main pre-build function called by PlatformIO
     """
     print("Running pre-build script...")
+    
+    if not run_build_increment():
+        print("Pre-build failed!")
+        sys.exit(1)
     
     if not run_html_generator():
         print("Pre-build failed!")
